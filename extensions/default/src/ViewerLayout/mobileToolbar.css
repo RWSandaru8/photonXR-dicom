@@ -1,0 +1,128 @@
+.toolbar-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-left: none;
+  z-index: 1;
+  box-shadow: none;
+  pointer-events: auto;
+  margin-left: 24px;
+  padding-top: 32px;
+  padding-bottom: 32px;
+}
+
+.toolbar-buttons-container {
+  pointer-events: auto;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: white;
+}
+
+@media (max-width: 600px) {
+  .toolbar-overlay,
+  .toolbar-overlay-mobile {
+    position: fixed;
+    top: unset;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 100vw;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0;
+    margin-right: 0;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    background: #000000;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+  }
+
+  .toolbar-overlay-mobile {
+    background: #004d45;
+  }
+
+  .toolbar-buttons-container,
+  .toolbar-buttons-container-mobile {
+    flex-direction: row;
+    width: 100vw;
+    height: auto;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+    padding-left: 8px;
+    padding-right: 8px;
+    scrollbar-width8: thin;
+    scrollbar-color: #444 #222;
+  }
+  .toolbar-buttons-container-mobile > * {
+    flex-shrink: 0;
+    display: inline-flex;
+    min-width: 32px;
+    height: 52px;
+    padding: 2px;
+  }
+
+  .toolbar-buttons-container-mobile button {
+    min-width: 32px;
+    height: 32px;
+    padding: 2px;
+  }
+
+  /* Optional: Hide scrollbar for Webkit browsers */
+  .toolbar-buttons-container-mobile::-webkit-scrollbar {
+    height: 6px;
+    background: #222;
+  }
+  .toolbar-buttons-container-mobile::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 3px;
+  }
+}
+
+/* Adjust panels for mobile view */
+@media (max-width: 600px) {
+  .left-panel {
+    display: none !important;
+  }
+
+  /* Position panel open buttons at the bottom */
+  .fixed.left-0,
+  .fixed.right-0 {
+    bottom: 60px !important; /* Position above the toolbar */
+  }
+
+  /* Adjust right panel height to avoid toolbar */
+  .right-panel {
+    height: calc(100% - 60px) !important; /* Account for toolbar height */
+    top: 0 !important;
+    bottom: 60px !important; /* Leave space for the bottom toolbar */
+    background-color: #004d45;
+  }
+
+  /* Ensure content is properly contained */
+  .right-panel > div {
+    height: 100% !important;
+    overflow-y: auto;
+  }
+}

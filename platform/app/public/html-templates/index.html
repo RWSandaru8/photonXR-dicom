@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta
+      name="theme-color"
+      content="#000000"
+    />
+    <meta
+      name="mobile-web-app-capable"
+      content="yes"
+    />
+    <meta
+      name="application-name"
+      content="OHIF Viewer"
+    />
+    <meta
+      name="apple-mobile-web-app-capable"
+      content="yes"
+    />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta
+      name="apple-mobile-web-app-title"
+      content="@ohif/app"
+    />
+    <script type="text/javascript">
+      console.time('scriptToView');
+      window.PUBLIC_URL = '<%= PUBLIC_URL %>';
+    </script>
+
+    <link
+      rel="manifest"
+      href="<%= PUBLIC_URL %>manifest.json"
+    />
+
+    <link
+      rel="icon"
+      type="image/png"
+      href="<%= PUBLIC_URL %>assets/GPV-icon.svg"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="57x57"
+      href="<%= PUBLIC_URL %>assets/GPV-icon.svg"
+    />
+    <link
+      rel="shortcut icon"
+      type="image/png"
+      href="<%= PUBLIC_URL %>assets/GPV-icon.svg"
+    />
+    <link
+      rel="yandex-tableau-widget"
+      href="<%= PUBLIC_URL %>assets/yandex-browser-manifest.json"
+    />
+
+    <script
+      rel="preload"
+      as="script"
+      type="text/javascript"
+      src="<%= PUBLIC_URL %>app-config.js"
+    ></script>
+    <script
+      rel="preload"
+      as="script"
+      type="module"
+      src="<%= PUBLIC_URL %>init-service-worker.js"
+    ></script>
+
+    <title>GPV MED Dicom Viewer</title>
+
+    <script>
+      function browserImportFunction(moduleId) {
+        return import(moduleId);
+      }
+
+      window.PUBLIC_URL = '<%= PUBLIC_URL %>';
+    </script>
+
+    <!-- EXTENSIONS -->
+    <!-- <script type="text/javascript" src="path/to/some-extension.js"></script>
+
+    <script>
+      // If configuration file is a JS Object:
+      window.config.extensions = [SomeExtension];
+
+      // If configuration file is a JS Function:
+      window.config = () => {
+        return {
+          extensions: [SomeExtension]
+        };
+      };
+    </script> -->
+  </head>
+
+  <body>
+    <noscript> You need to enable JavaScript to run this app. </noscript>
+    <div id="react-portal"></div>
+    <div id="root"></div>
+  </body>
+</html>
