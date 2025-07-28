@@ -57,6 +57,7 @@ export default function ToolButtonListWrapper({
         onInteraction={() => onSidebarTrigger?.()}
         className={`${primary.className} text-white`}
         showLabelBelowIcon={true}
+        label="Measurements"
       />
     );
   }
