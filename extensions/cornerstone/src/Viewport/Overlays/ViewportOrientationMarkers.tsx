@@ -10,9 +10,23 @@ import {
 import { utilities } from '@cornerstonejs/tools';
 import { vec3 } from 'gl-matrix';
 
-import './ViewportOrientationMarkers.css';
+import './OrientationMarkers.css';
 import { useViewportRendering } from '../../hooks';
 const { getOrientationStringLPS, invertOrientationStringLPS } = utilities.orientation;
+
+interface ViewportOrientationMarkersProps {
+  element: HTMLDivElement;
+  viewportData: any;
+  imageSliceData: {
+    imageIndex: number;
+  };
+  viewportId: string;
+  servicesManager: any;
+  orientationMarkers?: string[];
+  viewportOptions?: {
+    orientationMarkers?: boolean;
+  };
+}
 
 function ViewportOrientationMarkers({
   element,
@@ -20,7 +34,7 @@ function ViewportOrientationMarkers({
   imageSliceData,
   viewportId,
   servicesManager,
-  orientationMarkers = ['top', 'left'],
+  orientationMarkers = ['top', 'left', 'right', 'bottom'],
   viewportOptions = {},
 }: withAppTypes) {
   // Force orientation markers to be visible
@@ -103,12 +117,17 @@ function ViewportOrientationMarkers({
         return false;
       }
 
-      ({
-        rowCosines,
-        columnCosines,
-        isDefaultValueSetForColumnCosine,
-        isDefaultValueSetForColumnCosine,
-      } = metaData.get('imagePlaneModule', imageId) || {});
+      const metadata = metaData.get('imagePlaneModule', imageId);
+      if (!metadata) {
+        console.warn('ViewportOrientationMarkers: No imagePlaneModule metadata found for imageId:', imageId);
+        return null;
+      }
+
+      // Set default orientation if metadata doesn't provide it
+      rowCosines = metadata.rowCosines || [1, 0, 0];
+      columnCosines = metadata.columnCosines || [0, 1, 0];
+      isDefaultValueSetForRowCosine = !metadata.rowCosines;
+      isDefaultValueSetForColumnCosine = !metadata.columnCosines;
     } else {
       if (!element || !getEnabledElement(element)) {
         return '';
@@ -156,21 +175,23 @@ function ViewportOrientationMarkers({
       return null;
     }
 
-    return orientationMarkers.map((m, index) => (
-      <div
-        className={classNames(
-          'overlay-text',
-          `${m}-mid orientation-marker`,
-          isLight ? 'text-neutral-dark/70' : 'text-neutral-light/70',
-          isLight ? 'shadow-light' : 'shadow-dark',
-          'text-base',
-          'leading-5'
-        )}
-        key={`${m}-mid orientation-marker`}
-      >
-        <div className="orientation-marker-value">{markers[m]}</div>
-      </div>
-    ));
+    return orientationMarkers.map((m, index) => {
+      const isVertical = m === 'left' || m === 'right';
+      return (
+        <div
+          className={classNames(
+            'orientation-marker',
+            `${m}-mid`,
+            isVertical ? 'vertical-marker' : 'horizontal-marker'
+          )}
+          key={`${m}-mid orientation-marker`}
+        >
+          <div className="orientation-marker-value">
+            {markers[m]}
+          </div>
+        </div>
+      );
+    });
   }, [
     viewportData,
     imageSliceData,
@@ -183,18 +204,7 @@ function ViewportOrientationMarkers({
   ]);
 
   return (
-    <div
-      className="ViewportOrientationMarkers select-none"
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 100,
-      }}
-    >
+    <div className="ViewportOrientationMarkers select-none">
       {markers}
     </div>
   );

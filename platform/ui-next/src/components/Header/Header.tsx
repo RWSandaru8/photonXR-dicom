@@ -70,7 +70,7 @@ function Header({
               <img
                 src={HeaderIcon}
                 alt="Header Icon"
-                className="w-15 mr-2 h-9"
+                className="mr-2 h-6 w-10"
               />
               <div className="ml-1 flex flex-col">
                 {/*<span className="text-lg font-bold text-[#F5F5F5]">GPV MED</span>
@@ -93,9 +93,9 @@ function Header({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-primary mt-2 h-full w-full hover:bg-[#00a693]"
+                    className="settings-button mt-2 h-full w-full hover:bg-[#2A2A2A]"
                   >
-                    <Icons.GearSettings className="text-[#F5F5F5]" />
+                    <Icons.GearSettings className="text-[#D1D1D1]" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -107,14 +107,14 @@ function Header({
                       <DropdownMenuItem
                         key={index}
                         onSelect={option.onClick}
-                        className="flex items-center gap-2 py-2"
+                        className="dropdown-item flex items-center gap-2 py-2"
                       >
                         {IconComponent && (
-                          <span className="flex h-4 w-4 items-center justify-center">
+                          <span className="flex h-4 w-4 items-center justify-center text-[#D1D1D1]">
                             <Icons.ByName name={option.icon as string} />
                           </span>
                         )}
-                        <span className="flex-1">{option.title}</span>
+                        <span className="flex-1 text-[#D1D1D1]">{option.title}</span>
                       </DropdownMenuItem>
                     );
                   })}

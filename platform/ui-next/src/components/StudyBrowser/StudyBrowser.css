@@ -1,0 +1,84 @@
+.studies-section {
+  background-color: #0A0A0A;  /* Dark background matching our primary color */
+  border-right: 1px solid #2A2A2A;  /* Subtle border */
+}
+
+.study-item {
+  background-color: #1A1A1A;  /* Slightly lighter than background */
+  border: 1px solid #2A2A2A;
+  border-radius: 4px;
+  margin: 8px;
+  padding: 12px;
+  transition: background-color 0.2s ease;
+}
+
+.study-item:hover {
+  background-color: #2A2A2A;
+}
+
+.study-item.active {
+  background-color: #2A2A2A;
+  border-color: #00a693;  /* Accent color for active state */
+}
+
+.study-header {
+  color: #F5F5F5;  /* Primary text color */
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.study-date {
+  color: #9E9E9E;  /* Tertiary text color */
+  font-size: 12px;
+}
+
+.study-count {
+  color: #D1D1D1;  /* Secondary text color */
+  font-size: 12px;
+}
+
+.view-mode-toggle {
+  background-color: #2A2A2A;
+  border-radius: 4px;
+  padding: 4px;
+  margin: 8px;
+}
+
+.view-mode-button {
+  background: transparent;
+  color: #D1D1D1;
+  padding: 4px 8px;
+  border-radius: 2px;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.view-mode-button.active {
+  background-color: #00a693;
+  color: #F5F5F5;
+}
+
+/* Thumbnail styles */
+.thumbnail-container {
+  background-color: #1A1A1A;
+  border: 1px solid #2A2A2A;
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.thumbnail-container:hover {
+  border-color: #404040;
+}
+
+.thumbnail-container.selected {
+  border-color: #00a693;
+}
+
+/* Image counter badge */
+.image-count {
+  background-color: #2A2A2A;
+  color: #D1D1D1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}

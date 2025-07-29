@@ -1,0 +1,34 @@
+:root {
+  /* Primary Colors (60%) */
+  --primary-bg: #000000;
+  --primary-darker: #0A0A0A;
+  --primary-lighter: #1A1A1A;
+
+  /* Secondary Colors (30%) - Gray scale */
+  --secondary-dark: #2A2A2A;
+  --secondary: #404040;
+  --secondary-light: #606060;
+
+  /* Accent Colors (10%) */
+  --accent-primary: #00a693;     /* Existing teal color for primary actions */
+  --accent-primary-hover: #008577;
+  --accent-secondary: #3A3F41;   /* Subtle accent for secondary elements */
+
+  /* Text Colors */
+  --text-primary: #F5F5F5;       /* Light text for dark backgrounds */
+  --text-secondary: #D1D1D1;     /* Slightly dimmed text */
+  --text-tertiary: #9E9E9E;      /* Less prominent text */
+
+  /* Functional Colors */
+  --error: #FF453A;
+  --warning: #FFD60A;
+  --success: #32D74B;
+
+  /* UI Element Colors */
+  --border-color: #2A2A2A;
+  --divider-color: #333333;
+  --hover-bg: #2A2A2A;
+  --active-bg: #404040;
+  --disabled-bg: #1A1A1A;
+  --disabled-text: #666666;
+}

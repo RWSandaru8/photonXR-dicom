@@ -1,0 +1,18 @@
+.header-logo {
+  height: 55px;
+  width: auto;
+  min-width: 180px;
+  max-width: 280px;
+  object-fit: contain;
+  filter: brightness(1.2);
+}
+
+.header-logo-container {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 2rem;
+  margin-left: 1rem;
+  background-color: #0A0A0A;
+}
