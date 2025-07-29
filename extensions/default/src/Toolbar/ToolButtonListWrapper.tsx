@@ -8,6 +8,7 @@ import {
   ToolButtonListDivider,
 } from '@ohif/ui-next';
 import { useToolbar } from '@ohif/core/src';
+import { useSystem } from '@ohif/core/src';
 
 interface ToolButtonListWrapperProps {
   buttonSection: string;
@@ -17,6 +18,7 @@ interface ToolButtonListWrapperProps {
   sidebarTriggerOnly?: boolean;
   onSidebarTrigger?: () => void;
   isActive?: boolean;
+  showLabelBelowIcon?: boolean;
 }
 
 /**
@@ -38,6 +40,8 @@ export default function ToolButtonListWrapper({
     buttonSection,
   });
 
+  const { hotkeysManager } = useSystem();
+
   if (!toolbarButtons?.length) {
     return null;
   }
@@ -49,6 +53,9 @@ export default function ToolButtonListWrapper({
   const items = toolbarButtons.map(button => button.componentProps);
 
   if (sidebarTriggerOnly) {
+    // Use 'Measurements' as the tooltip for the Measurements group, otherwise fallback to label or id
+    const tooltip =
+      primary.id === 'MeasurementTools' ? 'Measurements' : primary.label || primary.id;
     return (
       <ToolButton
         key={primary.id}
@@ -57,7 +64,8 @@ export default function ToolButtonListWrapper({
         onInteraction={() => onSidebarTrigger?.()}
         className={`${primary.className} text-white`}
         showLabelBelowIcon={true}
-        label="Measurements"
+        label={id === 'MeasurementTools' ? 'Measurements' : primary.label || primary.id}
+        tooltip={tooltip}
       />
     );
   }
@@ -65,14 +73,37 @@ export default function ToolButtonListWrapper({
   if (horizontalInHeader) {
     return (
       <div className="flex flex-row items-center gap-2">
-        {items.map(item => (
-          <ToolButton
-            key={item.id}
-            {...item}
-            onInteraction={({ itemId }) => onInteraction?.({ id, itemId, commands: item.commands })}
-            className={`${item.className} text-white hover:text-blue-200`}
-          />
-        ))}
+        {items.map(item => {
+          // Find the hotkey for this tool (if any)
+          let shortcut = '';
+          if (hotkeysManager && hotkeysManager.hotkeyDefaults) {
+            const binding = hotkeysManager.hotkeyDefaults.find(
+              b =>
+                b.commandName === 'setToolActive' &&
+                b.commandOptions &&
+                b.commandOptions.toolName === item.id
+            );
+            if (binding && binding.keys && binding.keys.length > 0) {
+              shortcut = binding.keys[0].toUpperCase();
+            }
+          }
+          // Format tooltip: 'Tool Name (Shortcut)' or just 'Tool Name'
+          const tooltip = shortcut
+            ? `${item.label || item.tooltip || item.id} (${shortcut})`
+            : item.label || item.tooltip || item.id;
+          return (
+            <ToolButton
+              key={item.id}
+              {...item}
+              label={undefined}
+              tooltip={tooltip}
+              onInteraction={({ itemId }) =>
+                onInteraction?.({ id, itemId, commands: item.commands })
+              }
+              className={`${item.className} text-white hover:text-blue-200`}
+            />
+          );
+        })}
       </div>
     );
   }
@@ -108,7 +139,7 @@ export default function ToolButtonListWrapper({
                 onSelect={() => onInteraction?.({ id, itemId: item.id, commands: item.commands })}
                 className="text-white hover:bg-blue-600"
               >
-                <span className="pl-1">{item.label || item.tooltip || item.id}</span>
+                <span className="pl-1 text-white">{item.label || item.tooltip || item.id}</span>
               </ToolButtonListItem>
             );
           })}

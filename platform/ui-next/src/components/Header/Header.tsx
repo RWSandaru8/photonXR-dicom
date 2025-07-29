@@ -10,7 +10,7 @@ import {
   ToolButton,
 } from '../';
 import { IconPresentationProvider } from '@ohif/ui-next';
-import HeaderIcon from '../../../GPV-icon.png';
+import HeaderIcon from '../../../PXR.png';
 
 import NavBar from '../NavBar';
 
@@ -70,11 +70,11 @@ function Header({
               <img
                 src={HeaderIcon}
                 alt="Header Icon"
-                className="mr-2 h-7 w-7"
+                className="w-15 mr-2 h-9"
               />
               <div className="ml-1 flex flex-col">
-                <span className="text-lg font-bold text-[#F5F5F5]">GPV MED</span>
-                <span className="text-xs text-[#F5F5F5]">DICOM Viewer</span>
+                {/*<span className="text-lg font-bold text-[#F5F5F5]">GPV MED</span>
+                <span className="text-xs text-[#F5F5F5]">DICOM Viewer</span>*/}
               </div>
             </div>
           </div>
