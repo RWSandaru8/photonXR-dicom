@@ -36,43 +36,54 @@ const StudyItem = ({
     >
       <AccordionItem value="study-item">
         <AccordionTrigger
-          className={classnames('hover:bg-accent group w-full rounded bg-[#00A693]')}
+          className={classnames(
+            'group w-full rounded border transition-colors',
+            isActive
+              ? 'border-blue-500 bg-gray-800'
+              : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
+          )}
         >
-          <div className="flex h-[40px] w-full flex-row overflow-hidden">
-            <div className="flex w-full flex-row items-center justify-between">
-              <div className="flex min-w-0 flex-col items-start text-[13px]">
+          <div className="flex h-[36px] w-full flex-row overflow-hidden">
+            <div className="flex w-full flex-row items-center justify-between px-2">
+              <div className="flex min-w-0 flex-col items-start text-xs">
                 <Tooltip>
-                  <TooltipContent>{date}</TooltipContent>
+                  <TooltipContent className="border border-gray-700 bg-gray-800 text-white">
+                    {date}
+                  </TooltipContent>
                   <TooltipTrigger
                     className="w-full"
                     asChild
                   >
-                    <div className="h-[18px] w-full max-w-[160px] overflow-hidden truncate whitespace-nowrap text-left text-white">
+                    <div className="h-4 w-full max-w-[140px] overflow-hidden truncate whitespace-nowrap text-left text-gray-200">
                       {date}
                     </div>
                   </TooltipTrigger>
                 </Tooltip>
                 <Tooltip>
-                  <TooltipContent>{description}</TooltipContent>
+                  <TooltipContent className="border border-gray-700 bg-gray-800 text-white">
+                    {description}
+                  </TooltipContent>
                   <TooltipTrigger
                     className="w-full"
                     asChild
                   >
-                    <div className="h-[18px] w-full overflow-hidden truncate whitespace-nowrap text-left text-white">
+                    <div className="h-4 w-full overflow-hidden truncate whitespace-nowrap text-left text-sm font-medium text-gray-200">
                       {description}
                     </div>
                   </TooltipTrigger>
                 </Tooltip>
               </div>
-              <div className="flex flex-col items-end pl-[10px] text-[12px] text-white">
-                <div className="max-w-[150px] overflow-hidden text-ellipsis">{modalities}</div>
-                <div>{numInstances}</div>
-              </div>
-              {StudyMenuItems && (
-                <div className="ml-2 flex items-center">
-                  <StudyMenuItems StudyInstanceUID={StudyInstanceUID} />
+              <div className="flex items-center space-x-3">
+                <div className="flex flex-col items-end text-xs">
+                  <div className="font-medium text-gray-300">{modalities}</div>
+                  <div className="text-gray-400">{numInstances} images</div>
                 </div>
-              )}
+                {StudyMenuItems && (
+                  <div className="ml-1 flex items-center text-gray-400 transition-colors hover:text-blue-400">
+                    <StudyMenuItems StudyInstanceUID={StudyInstanceUID} />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </AccordionTrigger>

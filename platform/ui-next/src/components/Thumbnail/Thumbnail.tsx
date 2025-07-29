@@ -63,7 +63,7 @@ const Thumbnail = ({
       <div
         className={classnames(
           'flex h-full w-full flex-col items-center justify-center gap-[2px] p-[4px]',
-          isActive && 'bg-popover rounded'
+          isActive ? 'rounded border border-gray-600 bg-gray-800' : 'rounded hover:bg-gray-800/50'
         )}
       >
         <div className="h-[114px] w-[128px]">
@@ -76,19 +76,19 @@ const Thumbnail = ({
                 crossOrigin="anonymous"
               />
             ) : (
-              <div className="bg-background h-[114px] w-[128px] rounded"></div>
+              <div className="h-[114px] w-[128px] rounded bg-gray-900"></div>
             )}
 
             {/* bottom left */}
-            <div className="absolute bottom-0 left-0 flex h-[14px] items-center gap-[4px] rounded-tr pt-[10px] pb-[10px] pr-[6px] pl-[5px]">
+            <div className="absolute bottom-0 left-0 flex h-[14px] items-center gap-[4px] rounded-tr bg-black/70 pt-[10px] pb-[10px] pr-[6px] pl-[5px]">
               <div
                 className={classnames(
                   'h-[10px] w-[10px] rounded-[2px]',
-                  isActive || isHydratedForDerivedDisplaySet ? 'bg-highlight' : 'bg-primary/65',
-                  loadingProgress && loadingProgress < 1 && 'bg-primary/25'
+                  isActive || isHydratedForDerivedDisplaySet ? 'bg-blue-400' : 'bg-gray-500',
+                  loadingProgress && loadingProgress < 1 && 'bg-gray-700'
                 )}
               ></div>
-              <div className="text-[11px] font-semibold text-white">{modality}</div>
+              <div className="text-[11px] font-semibold text-gray-100">{modality}</div>
             </div>
 
             {/* top right */}

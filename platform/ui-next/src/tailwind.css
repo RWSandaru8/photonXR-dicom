@@ -4,100 +4,101 @@
 @tailwind components;
 @tailwind utilities;
 
-/* OHIF Theme */
+/* OHIF Theme - Dark Medical Imaging Optimized */
 
 @layer base {
   :root {
-    /* Flat dark grayscale — NO COLOR HUES */
-    --highlight: 0 0% 50%;
-    --neutral: 0 0% 15%;
-    --neutral-light: 0 0% 0%;
-    --neutral-dark: 0 0% 0%;
+    /* Color Palette */
+    --black: 0 0% 0%;
+    --dark-gray: 0 0% 13%; /* #222222 */
+    --medium-gray: 0 5% 44%; /* #7E6E6E */
+    --white: 0 0% 100%;
+    --light-pink: 6 60% 91%; /* #F2D7D5 */
+    --light-green: 116 27% 78%; /* #D5E8D4 */
 
-    /* Backgrounds and text */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 80%;
+    /* Base Colors */
+    --background: var(--black);
+    --foreground: 0 0% 90%;
+    --card: var(--black);
+    --card-foreground: 0 0% 95%;
+    --popover: var(--dark-gray);
+    --popover-foreground: 0 0% 95%;
 
-    --card: 0 0% 0%;
-    --card-foreground: 0 0% 20%;
+    /* Primary UI Elements */
+    --primary: var(--light-pink);
+    --primary-foreground: var(--black);
+    --secondary: var(--dark-gray);
+    --secondary-foreground: 0 0% 95%;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 85%;
+    /* Muted/Disabled States */
+    --muted: var(--dark-gray);
+    --muted-foreground: var(--medium-gray);
+    --accent: var(--dark-gray);
+    --accent-foreground: 0 0% 95%;
 
-    --primary: 0 0% 80%;
-    --primary-foreground: 0 0% 90%;
+    /* Status & Alerts */
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 95%;
 
-    --secondary: 0 0% 0%;
-    --secondary-foreground: 0 0% 75%;
+    /* UI Elements */
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 6 60% 40%;
 
-    --muted: 0 0% 5%;
-    --muted-foreground: 0 0% 50%;
-    --accent: 0 0% 0%;
-    --accent-foreground: 0 0% 85%;
-
-    --destructive: 0 0% 0%;
-    --destructive-foreground: 0 0% 85%;
-
-    --border: 0 0% 16%;
-    --input: 0 0% 14%;
-    --ring: 0 0% 40%;
-
-    --chart-1: 0 0% 18%;
-    --chart-2: 0 0% 28%;
-    --chart-3: 0 0% 38%;
-    --chart-4: 0 0% 48%;
-    --chart-5: 0 0% 58%;
+    /* Chart Colors */
+    --chart-1: var(--light-pink);
+    --chart-2: var(--light-green);
+    --chart-3: var(--medium-gray);
+    --chart-4: 0 0% 40%;
+    --chart-5: 0 0% 60%;
 
     --radius: 0.5rem;
 
-    /* Status (no green, blue, yellow, red) — all grays */
-    --success-bg: hsl(0, 0%, 12%);
-    --success-border: hsl(0, 0%, 20%);
-    --success-text: hsl(0, 0%, 65%);
+    /* Status Colors */
+    --success-bg: hsla(116, 27%, 20%, 0.2);
+    --success-border: var(--light-green);
+    --success-text: var(--light-green);
 
-    --info-bg: hsl(0, 0%, 12%);
-    --info-border: hsl(0, 0%, 20%);
-    --info-text: hsl(0, 0%, 65%);
+    --info-bg: hsla(240, 60%, 20%, 0.2);
+    --info-border: 240 60% 50%;
+    --info-text: 240 60% 70%;
 
-    --warning-bg: hsl(0, 0%, 12%);
-    --warning-border: hsl(0, 0%, 20%);
-    --warning-text: hsl(0, 0%, 65%);
+    --warning-bg: hsla(40, 90%, 20%, 0.2);
+    --warning-border: 40 90% 50%;
+    --warning-text: 40 90% 70%;
 
-    --error-bg: hsl(0, 0%, 12%);
-    --error-border: hsl(0, 0%, 20%);
-    --error-text: hsl(0, 0%, 65%);
+    --error-bg: hsla(0, 60%, 20%, 0.2);
+    --error-border: 0 60% 50%;
+    --error-text: 0 60% 70%;
   }
 
+  /* Dark Theme (default) */
   .dark {
-    /* identical for full black-only mode */
-    --background: 0 0% 2%;
-    --foreground: 0 0% 80%;
-    --card: 0 0% 6%;
-    --card-foreground: 0 0% 85%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 85%;
+    --background: var(--black);
+    --foreground: 0 0% 90%;
+    --card: var(--black);
+    --card-foreground: 0 0% 95%;
+    --popover: var(--dark-gray);
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 90%;
+    --primary: var(--light-pink);
+    --primary-foreground: var(--black);
 
-    --secondary: 0 0% 18%;
-    --secondary-foreground: 0 0% 75%;
+    --secondary: var(--dark-gray);
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 50%;
+    --muted: var(--dark-gray);
+    --muted-foreground: var(--medium-gray);
 
-    --accent: 0 0% 25%;
-    --accent-foreground: 0 0% 85%;
+    --accent: var(--dark-gray);
+    --accent-foreground: 0 0% 95%;
 
-    --destructive: 0 0% 20%;
-    --destructive-foreground: 0 0% 85%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 95%;
 
-    --border: 0 0% 16%;
-    --input: 0 0% 14%;
-    --ring: 0 0% 40%;
-
-    --chart-1: 0 0% 18%;
-    --chart-2: 0 0% 28%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 6 60% 40%;
     --chart-3: 0 0% 38%;
     --chart-4: 0 0% 48%;
     --chart-5: 0 0% 58%;

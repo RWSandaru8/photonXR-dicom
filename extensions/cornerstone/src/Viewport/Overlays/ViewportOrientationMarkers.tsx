@@ -21,7 +21,10 @@ function ViewportOrientationMarkers({
   viewportId,
   servicesManager,
   orientationMarkers = ['top', 'left'],
+  viewportOptions = {},
 }: withAppTypes) {
+  // Force orientation markers to be visible
+  const showOrientationMarkers = viewportOptions.orientationMarkers !== false;
   // Rotation is in degrees
   const [rotation, setRotation] = useState(0);
   const [flipHorizontal, setFlipHorizontal] = useState(false);
@@ -86,8 +89,8 @@ function ViewportOrientationMarkers({
   }, []);
 
   const markers = useMemo(() => {
-    if (!viewportData) {
-      return '';
+    if (!viewportData || !showOrientationMarkers) {
+      return null;
     }
 
     let rowCosines, columnCosines, isDefaultValueSetForRowCosine, isDefaultValueSetForColumnCosine;
@@ -179,7 +182,22 @@ function ViewportOrientationMarkers({
     isLight,
   ]);
 
-  return <div className="ViewportOrientationMarkers select-none">{markers}</div>;
+  return (
+    <div
+      className="ViewportOrientationMarkers select-none"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 100,
+      }}
+    >
+      {markers}
+    </div>
+  );
 }
 
 /**
