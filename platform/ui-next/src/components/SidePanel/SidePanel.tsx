@@ -111,7 +111,7 @@ const getTabClassNames = (
   isActiveTab: boolean,
   isTabDisabled: boolean
 ) =>
-  classnames('h-[28px] mb-[2px] cursor-pointer text-white bg-[#00A693]', {
+  classnames('h-[28px] mb-[2px] cursor-pointer text-white bg-[#B2A7D3]', {
     'hover:text-primary': !isActiveTab && !isTabDisabled,
     'rounded-0': tabIndex % numColumns === 0,
     '': (tabIndex + 1) % numColumns === 0 || tabIndex === numTabs - 1,
@@ -125,7 +125,7 @@ const getTabStyle = (numTabs: number) => {
 
 const getTabIconClassNames = (numTabs: number, isActiveTab: boolean) => {
   return classnames('h-full w-full flex items-center justify-center', {
-    'bg-[#00A693]': isActiveTab,
+    'bg-[#B2A7D3]': isActiveTab,
     rounded: isActiveTab,
   });
 };
@@ -365,7 +365,7 @@ const SidePanel = ({
       <>
         {getCloseIcon()}
         <div className={classnames('flex grow justify-center')}>
-          <div className={classnames('text-primary flex flex-wrap bg-[#00A693]')}>
+          <div className={classnames('text-primary flex flex-wrap bg-[#B2A7D3]')}>
             {tabs.map((tab, tabIndex) => {
               const { disabled } = tab;
               return (
@@ -373,11 +373,11 @@ const SidePanel = ({
                   {tabIndex % numCols !== 0 && (
                     <div
                       className={classnames(
-                        'flex h-[28px] w-[2px] items-center bg-[#00A693]',
+                        'flex h-[28px] w-[2px] items-center bg-[#B2A7D3]',
                         tabSpacerWidth
                       )}
                     >
-                      <div className="h-[20px] w-full bg-[#00A693]"></div>
+                      <div className="h-[20px] w-full bg-[#B2A7D3]"></div>
                     </div>
                   )}
                   <Tooltip key={tabIndex}>
@@ -443,12 +443,12 @@ const SidePanel = ({
   const getOpenStateComponent = () => {
     return (
       <>
-        <div className="flex h-[40px] flex-shrink-0 select-none rounded-t bg-[#00A693] p-2">
+        <div className="flex h-[40px] flex-shrink-0 select-none rounded-t bg-[#B2A7D3] p-2">
           {tabs.length === 1 ? getOneTabComponent() : getTabGridComponent()}
         </div>
         <Separator
           orientation="horizontal"
-          className="bg-[#00A693]"
+          className="bg-[#B2A7D3]"
           thickness="2px"
         />
       </>

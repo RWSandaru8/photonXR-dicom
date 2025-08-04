@@ -43,7 +43,7 @@ const StudyListFilter = ({
 
   return (
     <React.Fragment>
-      <div className="w-full flex flex-row items-center justify-between bg-[#F5F5F5] py-4 px-4">
+      <div className="flex w-full flex-row items-center justify-between bg-[#F5F5F5] py-4 px-4">
         <div className="flex min-w-[1px] shrink flex-row items-center gap-6">
           <Typography
             component="h6"
@@ -98,7 +98,7 @@ const StudyListFilter = ({
             variant="outlined"
             color="primaryActive"
             border="primaryActive"
-            className="ml-4 !border-none !bg-[#00A693] !font-medium !text-white shadow-sm transition-all duration-200 hover:!bg-[#008A7A] hover:shadow-md px-6 py-2 text-lg"
+            className="ml-4 !border-none !bg-[#B2A7D3] px-6 py-2 text-lg !font-medium !text-white shadow-sm transition-all duration-200 hover:!bg-[#202025] hover:shadow-md"
             onClick={handleNewStudyClick}
           >
             + New Study

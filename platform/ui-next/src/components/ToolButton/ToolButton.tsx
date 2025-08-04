@@ -7,7 +7,7 @@ import { useIconPresentation } from '../../contextProviders/IconPresentationProv
 
 const baseClasses = '!rounded-lg inline-flex items-center justify-center';
 const defaultClasses = 'bg-transparent text-foreground/80 hover:bg-background hover:text-highlight';
-const activeClasses = 'bg-[#00A693] text-background hover:!bg-highlight/80';
+const activeClasses = 'bg-[#B2A7D3] text-background hover:!bg-highlight/80';
 const disabledClasses =
   'text-common-bright hover:bg-primary-dark hover:text-primary-light opacity-40 cursor-not-allowed';
 

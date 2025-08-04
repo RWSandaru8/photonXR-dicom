@@ -94,7 +94,7 @@ function Header({
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="flex items-center rounded-md px-3 py-2 hover:bg-[#2A2A2A]"
+                    className="flex items-center rounded-md px-3 py-2 hover:bg-[#202025]"
                   >
                     <Icons.Patient className="mr-3 h-7 w-7 text-white" />
                     <span className="mr-3 text-base text-white">Patient</span>
@@ -148,7 +148,7 @@ function Header({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="settings-button mt-2 h-full w-full hover:bg-[#2A2A2A]"
+                    className="settings-button mt-2 h-full w-full hover:bg-[#202025]"
                   >
                     <Icons.GearSettings className="text-[#D1D1D1]" />
                   </Button>

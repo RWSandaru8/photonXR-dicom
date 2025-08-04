@@ -1,11 +1,11 @@
 .studies-section {
-  background-color: #2A2A2A;  /* Gray background */
-  border-right: 1px solid #3A3A3A;  /* Slightly lighter border */
+  background-color: #101011; /* Dark background */
+  border-right: 1px solid #b2a7d3; /* Purple accent border */
 }
 
 .study-item {
-  background-color: #333333;  /* Slightly lighter than background */
-  border: 1px solid #3A3A3A;
+  background-color: #202025; /* Medium dark background */
+  border: 1px solid #b2a7d3;
   border-radius: 4px;
   margin: 8px;
   padding: 12px;
@@ -13,32 +13,32 @@
 }
 
 .study-item:hover {
-  background-color: #3A3A3A;
+  background-color: #b2a7d3;
 }
 
 .study-item.active {
-  background-color: #2A2A2A;
-  border-color: #404040;  /* Using secondary color for active state */
+  background-color: #202025;
+  border-color: #b2a7d3; /* Using purple accent for active state */
 }
 
 .study-header {
-  color: #F5F5F5;  /* Primary text color */
+  color: #f9fafb; /* Bright text color */
   font-size: 14px;
   font-weight: 600;
 }
 
 .study-date {
-  color: #9E9E9E;  /* Tertiary text color */
+  color: #b2a7d3; /* Purple accent text color */
   font-size: 12px;
 }
 
 .study-count {
-  color: #D1D1D1;  /* Secondary text color */
+  color: #f9fafb; /* Bright text color */
   font-size: 12px;
 }
 
 .view-mode-toggle {
-  background-color: #2A2A2A;
+  background-color: #202025;
   border-radius: 4px;
   padding: 4px;
   margin: 8px;
@@ -46,7 +46,7 @@
 
 .view-mode-button {
   background: transparent;
-  color: #D1D1D1;
+  color: #f9fafb;
   padding: 4px 8px;
   border-radius: 2px;
   border: none;
@@ -55,13 +55,13 @@
 
 .view-mode-button.active {
   background-color: #404040;
-  color: #F5F5F5;
+  color: #f5f5f5;
 }
 
 /* Thumbnail styles */
 .thumbnail-container {
-  background-color: #1A1A1A;
-  border: 1px solid #2A2A2A;
+  background-color: #1a1a1a;
+  border: 1px solid #2a2a2a;
   border-radius: 4px;
   padding: 4px;
 }
@@ -76,8 +76,8 @@
 
 /* Image counter badge */
 .image-count {
-  background-color: #2A2A2A;
-  color: #D1D1D1;
+  background-color: #2a2a2a;
+  color: #d1d1d1;
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 11px;

@@ -43,7 +43,7 @@ function ToolboxUI(props: ToolboxProps) {
     return (
       <>
         <div className="flex flex-col">
-          <div className="bg-muted mt-0.5 flex flex-wrap space-x-2 py-2 px-1">
+          <div className="mt-0.5 flex flex-wrap space-x-2 rounded-md border border-[#B2A7D3] bg-[#202025] py-2 px-1 shadow-lg">
             {toolbarButtons.map((toolDef, index) => {
               if (!toolDef) {
                 return null;

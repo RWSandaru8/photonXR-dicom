@@ -133,10 +133,10 @@ const Trigger = ({
         className={cn(
           'inline-flex h-10 w-10 items-center justify-center !rounded-lg',
           disabled
-            ? 'text-common-bright hover:bg-primary-dark hover:text-primary-light cursor-not-allowed opacity-40'
+            ? 'cursor-not-allowed text-[#F9FAFB] opacity-40 hover:bg-[#202025] hover:text-[#B2A7D3]'
             : isOpen
-              ? 'bg-background text-foreground/80'
-              : 'text-foreground/80 hover:bg-background hover:text-highlight bg-transparent',
+              ? 'bg-[#202025] text-[#F9FAFB]'
+              : 'bg-transparent text-[#F9FAFB] hover:bg-[#202025] hover:text-[#B2A7D3]',
           className
         )}
         variant="ghost"
@@ -266,7 +266,7 @@ const Preset = ({
     <div
       className={cn(
         'group cursor-pointer rounded transition',
-        'hover:bg-accent flex items-center gap-2 p-1.5',
+        'flex items-center gap-2 p-1.5 hover:bg-[#202025]',
         disabled && 'pointer-events-none opacity-50',
         className
       )}
@@ -276,7 +276,7 @@ const Preset = ({
       <div className="flex-shrink-0">
         <Icons.ByName
           name={icon}
-          className={cn('group-hover:text-primary', iconSize)}
+          className={cn('group-hover:text-[#B2A7D3]', iconSize)}
         />
       </div>
       {title && <div className="text-foreground text-base">{title}</div>}
@@ -329,7 +329,7 @@ const GridSelector = ({ rows = 3, columns = 4, className }: GridSelectorProps) =
       {Array.from(Array(rows * columns).keys()).map(index => (
         <div
           key={index}
-          className={cn('cursor-pointer', isHovered(index) ? 'bg-primary-active' : 'bg-[#000000]')}
+          className={cn('cursor-pointer', isHovered(index) ? 'bg-[#B2A7D3]' : 'bg-[#202025]')}
           data-cy={`Layout-${index % columns}-${Math.floor(index / columns)}`}
           onClick={() => handleSelection(index)}
           onMouseEnter={() => setHoveredIndex(index)}

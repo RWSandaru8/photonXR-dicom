@@ -196,14 +196,16 @@ function WorkList(props: WorkListProps) {
             Accession: study.accession || '',
             Modality: study.modularity || '',
             Description: study.description || '',
-            Date: study.date ? `${study.date.slice(0, 4)}-${study.date.slice(5, 7)}-${study.date.slice(8, 10)}` : '',
+            Date: study.date
+              ? `${study.date.slice(0, 4)}-${study.date.slice(5, 7)}-${study.date.slice(8, 10)}`
+              : '',
             Time: study.time ? `${study.time.slice(0, 2)}:${study.time.slice(3, 5)}` : '',
             SourceAE: 'Local',
 
             // Keep these for internal use - ensure they're properly named for the ViewFilesModal
             studyInstanceUid: study.id,
             dicomFileUrl: study.dicom_file_url || '',
-            reportFileUrl: study.report_file_url || ''
+            reportFileUrl: study.report_file_url || '',
           };
         });
 
@@ -231,7 +233,7 @@ function WorkList(props: WorkListProps) {
     lastScanTime: null,
     percentageChange: 0,
     isLoading: true,
-    error: null
+    error: null,
   });
 
   // Fetch statistics data when component mounts
@@ -248,14 +250,14 @@ function WorkList(props: WorkListProps) {
         setStatistics({
           ...data,
           isLoading: false,
-          error: null
+          error: null,
         });
       } catch (err) {
         console.error('Error fetching statistics:', err);
         setStatistics(prev => ({
           ...prev,
           isLoading: false,
-          error: 'Failed to load statistics'
+          error: 'Failed to load statistics',
         }));
       }
     };
@@ -270,32 +272,35 @@ function WorkList(props: WorkListProps) {
     // Apply filters
     if (filterValues.patientName) {
       const searchTerm = filterValues.patientName.toLowerCase();
-      filteredStudies = filteredStudies.filter(study =>
-        (study.Name && study.Name.toLowerCase().includes(searchTerm)) ||
-        (study.ID && study.ID.toLowerCase().includes(searchTerm))
+      filteredStudies = filteredStudies.filter(
+        study =>
+          (study.Name && study.Name.toLowerCase().includes(searchTerm)) ||
+          (study.ID && study.ID.toLowerCase().includes(searchTerm))
       );
     }
 
     if (filterValues.description) {
       const searchTerm = filterValues.description.toLowerCase();
-      filteredStudies = filteredStudies.filter(study =>
-        study.Description && study.Description.toLowerCase().includes(searchTerm)
+      filteredStudies = filteredStudies.filter(
+        study => study.Description && study.Description.toLowerCase().includes(searchTerm)
       );
     }
 
     if (filterValues.accession) {
       const searchTerm = filterValues.accession.toLowerCase();
-      filteredStudies = filteredStudies.filter(study =>
-        study.Accession && study.Accession.toLowerCase().includes(searchTerm)
+      filteredStudies = filteredStudies.filter(
+        study => study.Accession && study.Accession.toLowerCase().includes(searchTerm)
       );
     }
 
     // Filter by modality
     if (filterValues.modalities && filterValues.modalities.length > 0) {
       filteredStudies = filteredStudies.filter(study => {
-        if (!study.Modality) return false;
-        return filterValues.modalities.some(modality =>
-          study.Modality.toUpperCase() === modality.toUpperCase()
+        if (!study.Modality) {
+          return false;
+        }
+        return filterValues.modalities.some(
+          modality => study.Modality.toUpperCase() === modality.toUpperCase()
         );
       });
     }
@@ -303,7 +308,9 @@ function WorkList(props: WorkListProps) {
     // Filter by date range
     if (filterValues.studyDate.startDate || filterValues.studyDate.endDate) {
       filteredStudies = filteredStudies.filter(study => {
-        if (!study.Date) return false;
+        if (!study.Date) {
+          return false;
+        }
 
         const studyDate = new Date(study.Date);
         let isInRange = true;
@@ -324,8 +331,8 @@ function WorkList(props: WorkListProps) {
 
     // Apply datasource filter if specified
     if (filterValues.datasources) {
-      filteredStudies = filteredStudies.filter(study =>
-        study.SourceAE === filterValues.datasources
+      filteredStudies = filteredStudies.filter(
+        study => study.SourceAE === filterValues.datasources
       );
     }
 
@@ -337,10 +344,16 @@ function WorkList(props: WorkListProps) {
         case 'patientName':
           return ((a.Name || '') > (b.Name || '') ? 1 : -1) * sortModifier;
         case 'studyDate':
-          if (!a.Date && !b.Date) return 0;
-          if (!a.Date) return sortModifier;
-          if (!b.Date) return -1 * sortModifier;
-          return ((new Date(a.Date) > new Date(b.Date)) ? 1 : -1) * sortModifier;
+          if (!a.Date && !b.Date) {
+            return 0;
+          }
+          if (!a.Date) {
+            return sortModifier;
+          }
+          if (!b.Date) {
+            return -1 * sortModifier;
+          }
+          return (new Date(a.Date) > new Date(b.Date) ? 1 : -1) * sortModifier;
         case 'modality':
           return ((a.Modality || '') > (b.Modality || '') ? 1 : -1) * sortModifier;
         case 'accession':
@@ -794,7 +807,8 @@ function WorkList(props: WorkListProps) {
   );
 
   return (
-    <div className="flex h-screen flex-col bg-white">{/*check*/}
+    <div className="flex h-screen flex-col bg-white">
+      {/*check*/}
       <Header
         isSticky
         menuOptions={menuOptions}
@@ -808,11 +822,12 @@ function WorkList(props: WorkListProps) {
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="bg-white px-4 pt-3">{/*check*/}
+          <div className="bg-white px-4 pt-3">
+            {/*check*/}
             {/* Stats Cards */}
             <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               {/* First Card - Total Studies */}
-              <Card className="h-28 border-[#00A693] bg-white md:h-32">
+              <Card className="h-28 border-[#B2A7D3] bg-white md:h-32">
                 <div className="flex h-full flex-row items-center justify-between p-3 md:p-4">
                   {statistics.error ? (
                     <div className="flex items-center text-red-500">
@@ -831,19 +846,22 @@ function WorkList(props: WorkListProps) {
                       <span className="block text-4xl font-bold text-[#333333] md:text-5xl">
                         {statistics.totalStudies}
                       </span>
-                      <span className={`text-xs ${statistics.percentageChange >= 0 ? 'text-green-600' : 'text-red-600'} md:text-sm`}>
-                        {statistics.percentageChange >= 0 ? '▲' : '▼'} {Math.abs(statistics.percentageChange)}% from last month
+                      <span
+                        className={`text-xs ${statistics.percentageChange >= 0 ? 'text-green-600' : 'text-red-600'} md:text-sm`}
+                      >
+                        {statistics.percentageChange >= 0 ? '▲' : '▼'}{' '}
+                        {Math.abs(statistics.percentageChange)}% from last month
                       </span>
                     </div>
                   )}
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md border-[#00A693] bg-[#F5F5F5] p-1 md:h-12 md:w-12">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md border-[#B2A7D3] bg-[#F5F5F5] p-1 md:h-12 md:w-12">
                     <FolderKanban className="h-6 w-6 text-[#666666] md:h-8 md:w-8" />
                   </div>
                 </div>
               </Card>
 
               {/* Second Card - Today's Scans */}
-              <Card className="h-28 border-[#00A693] bg-white md:h-32">
+              <Card className="h-28 border-[#B2A7D3] bg-white md:h-32">
                 <div className="flex h-full flex-row items-center justify-between p-3 md:p-4">
                   {statistics.error ? (
                     <div className="flex items-center text-red-500">
@@ -863,11 +881,13 @@ function WorkList(props: WorkListProps) {
                         {statistics.todaysScans}
                       </span>
                       <span className="text-xs text-[#666666] md:text-sm">
-                        {statistics.lastScanTime ? `Last scan: ${statistics.lastScanTime}` : 'No scans today'}
+                        {statistics.lastScanTime
+                          ? `Last scan: ${statistics.lastScanTime}`
+                          : 'No scans today'}
                       </span>
                     </div>
                   )}
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md border-[#00A693] bg-[#F5F5F5] p-1 md:h-12 md:w-12">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md border-[#B2A7D3] bg-[#F5F5F5] p-1 md:h-12 md:w-12">
                     <Clock4 className="h-6 w-6 text-[#666666] md:h-8 md:w-8" />
                   </div>
                 </div>
@@ -929,7 +949,7 @@ function WorkList(props: WorkListProps) {
                     key={range}
                     variant="secondary"
                     size="small"
-                    className={`${selectedDateRange === range ? 'bg-[#00A693] text-white' : 'bg-[#E5E5E5] text-[#333333] hover:bg-[#F1F5F9]'} border border-[#CBD5E1] `}
+                    className={`${selectedDateRange === range ? 'bg-[#B2A7D3] text-white' : 'bg-[#E5E5E5] text-[#333333] hover:bg-[#F1F5F9]'} border border-[#CBD5E1]`}
                     onClick={() => {
                       setSelectedDateRange(range);
 
@@ -940,19 +960,29 @@ function WorkList(props: WorkListProps) {
 
                       switch (range) {
                         case '1D': // Last 1 day
-                          startDate = new Date(today.setDate(today.getDate() - 1)).toISOString().split('T')[0];
+                          startDate = new Date(today.setDate(today.getDate() - 1))
+                            .toISOString()
+                            .split('T')[0];
                           break;
                         case '3D': // Last 3 days
-                          startDate = new Date(today.setDate(today.getDate() - 3)).toISOString().split('T')[0];
+                          startDate = new Date(today.setDate(today.getDate() - 3))
+                            .toISOString()
+                            .split('T')[0];
                           break;
                         case '1W': // Last week
-                          startDate = new Date(today.setDate(today.getDate() - 7)).toISOString().split('T')[0];
+                          startDate = new Date(today.setDate(today.getDate() - 7))
+                            .toISOString()
+                            .split('T')[0];
                           break;
                         case '1M': // Last month
-                          startDate = new Date(today.setMonth(today.getMonth() - 1)).toISOString().split('T')[0];
+                          startDate = new Date(today.setMonth(today.getMonth() - 1))
+                            .toISOString()
+                            .split('T')[0];
                           break;
                         case '1Y': // Last year
-                          startDate = new Date(today.setFullYear(today.getFullYear() - 1)).toISOString().split('T')[0];
+                          startDate = new Date(today.setFullYear(today.getFullYear() - 1))
+                            .toISOString()
+                            .split('T')[0];
                           break;
                         case 'ALL': // All dates
                           startDate = null;
@@ -1006,7 +1036,7 @@ function WorkList(props: WorkListProps) {
                   <Button
                     variant="default"
                     size="small"
-                    className="flex-1 bg-[#00A693] text-white md:flex-none"
+                    className="flex-1 bg-[#B2A7D3] text-white md:flex-none"
                     onClick={() => {
                       // Apply search query to filter values
                       updateFilterValues({
@@ -1030,7 +1060,7 @@ function WorkList(props: WorkListProps) {
                 <ModalityButtons
                   modalities={availableModalities}
                   selectedModality={selectedModality}
-                  onModalityChange={(modality) => {
+                  onModalityChange={modality => {
                     setSelectedModality(modality);
 
                     // Update the filterValues based on the selected modality
@@ -1056,7 +1086,7 @@ function WorkList(props: WorkListProps) {
                 <span className="text-black">Source:</span>
                 <Select
                   value={selectedSource}
-                  onValueChange={(value) => {
+                  onValueChange={value => {
                     setSelectedSource(value);
                     // Update the filterValues based on the selected source
                     updateFilterValues({
@@ -1096,7 +1126,7 @@ function WorkList(props: WorkListProps) {
             <NewStudyTable
               studies={combinedStudies}
               onRowClick={handleStudyClick}
-              className="text-gray-900 bg-white"
+              className="bg-white text-gray-900"
             />
             <StudyListPagination
               currentPage={pageNumber}
@@ -1104,9 +1134,8 @@ function WorkList(props: WorkListProps) {
               onChangePage={onPageNumberChange}
               onChangePerPage={onResultsPerPageChange}
             />
-            {!hasStudies && (
-              <EmptyStudies className="!text-black" />
-            )}{/*check*/}
+            {!hasStudies && <EmptyStudies className="!text-black" />}
+            {/*check*/}
           </div>
         </ScrollArea>
       </div>
