@@ -19,8 +19,7 @@ const NavBar = ({
   return (
     <div
       className={classnames(
-        'z-20 border-[#E2E8F0] px-1',
-        isInDicomViewer ? '' : 'transparent',
+        'z-20 px-1',
         isSticky && stickyClasses,
         !isSticky && notStickyClasses,
         className
@@ -28,13 +27,16 @@ const NavBar = ({
       style={
         isInDicomViewer
           ? {
-              background: 'transparent',
+              background: '#2A2A2A',
               WebkitBackdropFilter: 'none',
               backdropFilter: 'none',
               borderBottom: 'none',
-              boxShadow: 'none',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             }
-          : undefined
+          : {
+              background: '#2A2A2A',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            }
       }
     >
       {children}

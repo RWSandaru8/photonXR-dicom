@@ -70,7 +70,7 @@ function Header({
               <img
                 src={HeaderIcon}
                 alt="Header Icon"
-                className="mr-2 h-6 w-10"
+                className="w-15 mr-2 h-6"
               />
               <div className="ml-1 flex flex-col">
                 {/*<span className="text-lg font-bold text-[#F5F5F5]">GPV MED</span>

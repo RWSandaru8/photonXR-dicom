@@ -10,8 +10,8 @@
   --secondary-light: #606060;
 
   /* Accent Colors (10%) */
-  --accent-primary: #00a693;     /* Existing teal color for primary actions */
-  --accent-primary-hover: #008577;
+  --accent-primary: #404040;     /* Secondary color for primary actions */
+  --accent-primary-hover: #505050;
   --accent-secondary: #3A3F41;   /* Subtle accent for secondary elements */
 
   /* Text Colors */

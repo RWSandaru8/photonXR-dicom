@@ -1,11 +1,11 @@
 .studies-section {
-  background-color: #0A0A0A;  /* Dark background matching our primary color */
-  border-right: 1px solid #2A2A2A;  /* Subtle border */
+  background-color: #2A2A2A;  /* Gray background */
+  border-right: 1px solid #3A3A3A;  /* Slightly lighter border */
 }
 
 .study-item {
-  background-color: #1A1A1A;  /* Slightly lighter than background */
-  border: 1px solid #2A2A2A;
+  background-color: #333333;  /* Slightly lighter than background */
+  border: 1px solid #3A3A3A;
   border-radius: 4px;
   margin: 8px;
   padding: 12px;
@@ -13,12 +13,12 @@
 }
 
 .study-item:hover {
-  background-color: #2A2A2A;
+  background-color: #3A3A3A;
 }
 
 .study-item.active {
   background-color: #2A2A2A;
-  border-color: #00a693;  /* Accent color for active state */
+  border-color: #404040;  /* Using secondary color for active state */
 }
 
 .study-header {
@@ -54,7 +54,7 @@
 }
 
 .view-mode-button.active {
-  background-color: #00a693;
+  background-color: #404040;
   color: #F5F5F5;
 }
 
@@ -71,7 +71,7 @@
 }
 
 .thumbnail-container.selected {
-  border-color: #00a693;
+  border-color: #404040;
 }
 
 /* Image counter badge */

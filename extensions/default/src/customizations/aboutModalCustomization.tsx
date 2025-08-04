@@ -12,23 +12,33 @@ function AboutModalDefault() {
 
   return (
     <AboutModal className="w-[400px]">
-      <AboutModal.ProductName>OHIF Viewer</AboutModal.ProductName>
-      <AboutModal.ProductVersion>{main}</AboutModal.ProductVersion>
-      {beta && <AboutModal.ProductBeta>{beta}</AboutModal.ProductBeta>}
+      <AboutModal.ProductName>PhotonXR</AboutModal.ProductName>
+      <AboutModal.ProductVersion>v2.5.1</AboutModal.ProductVersion>
+
+      <AboutModal.ProductBeta>Beta Release – July 2025</AboutModal.ProductBeta>
 
       <AboutModal.Body>
         <AboutModal.DetailItem
           label="Commit Hash"
-          value={commitHash}
+          value="a1b2c3d4e5f6g7h8i9"
         />
         <AboutModal.DetailItem
           label="Current Browser & OS"
           value={`${browser}, ${os}`}
         />
+        <AboutModal.DetailItem
+          label="Build Date"
+          value="July 28, 2025"
+        />
+        <AboutModal.DetailItem
+          label="Developed By"
+          value="Global Pearl Ventures"
+        />
+
         <AboutModal.SocialItem
-          icon="SocialGithub"
-          url="OHIF/Viewers"
-          text="github.com/OHIF/Viewers"
+          icon="SocialTwitter"
+          url="https://twitter.com/GPV_Tech"
+          text="@GPV_Tech"
         />
       </AboutModal.Body>
     </AboutModal>
