@@ -70,7 +70,7 @@ function Header({
               <img
                 src={HeaderIcon}
                 alt="Header Icon"
-                className="w-15 mr-2 h-6"
+                className="w-13 mr-4 h-4 pl-1"
               />
               <div className="ml-1 flex flex-col">
                 {/*<span className="text-lg font-bold text-[#F5F5F5]">GPV MED</span>
@@ -87,6 +87,61 @@ function Header({
             {/*<div className="border-primary-dark mx-1.5 h-[25px] border-r"></div>*/}
             {/*{PatientInfo}*/}
             {/*<div className="border-primary-dark mx-1.5 h-[25px] border-r"></div>*/}
+
+            {/* User Profile Section */}
+            <div className="mr-4 flex-shrink-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="flex items-center rounded-md px-3 py-2 hover:bg-[#2A2A2A]"
+                  >
+                    <Icons.Patient className="mr-3 h-7 w-7 text-white" />
+                    <span className="mr-3 text-base text-white">Patient</span>
+                    <Icons.ChevronDown className="h-4 w-4 text-white" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-64"
+                >
+                  <div className="space-y-3 p-4">
+                    <div className="border-b border-gray-600 pb-2">
+                      <h3 className="text-sm font-medium text-[#F5F5F5]">Patient Information</h3>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-[#A0A0A0]">Modality:</span>
+                        <span className="text-sm font-medium text-[#D1D1D1]">CT</span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="text-sm text-[#A0A0A0]">Region:</span>
+                        <span className="text-sm font-medium text-[#D1D1D1]">Head & Neck</span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="text-sm text-[#A0A0A0]">Patient ID:</span>
+                        <span className="text-sm font-medium text-[#D1D1D1]">PAT-001234</span>
+                      </div>
+
+                      <div className="mt-3 border-t border-gray-600 pt-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-[#A0A0A0]">DOB:</span>
+                          <span className="text-sm text-[#D1D1D1]">1985-03-15</span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between">
+                          <span className="text-sm text-[#A0A0A0]">Sex | Age:</span>
+                          <span className="text-sm text-[#D1D1D1]">M | 39</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
             <div className="flex-shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
