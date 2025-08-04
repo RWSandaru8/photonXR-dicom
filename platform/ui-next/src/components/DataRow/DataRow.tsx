@@ -211,7 +211,7 @@ export const DataRow: React.FC<DataRowProps> = ({
         {number !== null && (
           <div
             className={`flex h-7 max-h-7 w-7 flex-shrink-0 items-center justify-center rounded-l border-r border-black text-base ${
-              isSelected ? 'bg-highlight text-black' : 'bg-muted text-muted-foreground'
+              isSelected ? 'bg-[#B2A7D3] text-[#F9FAFB]' : 'bg-[#202025] text-[#F9FAFB]'
             } overflow-hidden`}
           >
             {number}
