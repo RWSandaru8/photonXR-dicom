@@ -67,9 +67,10 @@ COPY --link --exclude=yarn.lock --exclude=package.json --exclude=Dockerfile . .
 # After install it should hopefully be stable until the local directory changes
 ENV QUICK_BUILD true
 # ENV GENERATE_SOURCEMAP=false
-ARG APP_CONFIG=config/default.js
+ARG APP_CONFIG=config/orthanc-config.js
 ARG PUBLIC_URL=/
 ENV PUBLIC_URL=${PUBLIC_URL}
+ENV APP_CONFIG=${APP_CONFIG}
 
 RUN bun run show:config
 RUN bun run build

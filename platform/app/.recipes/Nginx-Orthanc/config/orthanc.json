@@ -85,5 +85,9 @@
     "StowMaxInstances": 10,
     "StowMaxSize": 10,
     "QidoCaseSensitive": false
+  },
+  "HttpHeaders": {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS,PUT,DELETE"
   }
 }

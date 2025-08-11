@@ -1,0 +1,82 @@
+{
+  "Name": "OHIF-Orthanc",
+  "StorageDirectory": "/var/lib/orthanc/storage",
+  "IndexDirectory": "/var/lib/orthanc/db",
+  "HttpPort": 8042,
+  "DicomPort": 4242,
+  "DicomAet": "ORTHANC",
+  "DicomCheckCalledAet": false,
+  "DicomCheckModalityHost": false,
+  "AuthenticationEnabled": false,
+  "RemoteAccessAllowed": true,
+  "SslEnabled": false,
+  "HttpCompressionEnabled": true,
+  "HttpRequestTimeout": 60,
+  
+  // CORS Configuration for OHIF
+  "HttpCors": {
+    "Enabled": true,
+    "AllowedOrigins": ["*"],
+    "AllowedMethods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "AllowedHeaders": ["*"],
+    "AllowCredentials": false,
+    "MaxAge": 86400
+  },
+  
+  // DICOMWeb plugin configuration
+  "DicomWeb": {
+    "Enable": true,
+    "Root": "/dicom-web/",
+    "EnableMetadata": true,
+    "EnableMetadataCache": true,
+    "MetadataCacheSize": 100,
+    "ServeJpeg": true,
+    "ServePng": true,
+    "EnableWadoRs": true,
+    "EnableWadoUri": true,
+    "EnableQidoRs": true,
+    "EnableStowRs": true,
+    "QidoRsPageLimit": 100,
+    "Host": "0.0.0.0",
+    "Port": 8042,
+    "Ssl": false,
+    "Compression": true,
+    "ChunkedTransfer": true,
+    "ExtendedSopClass": true,
+    "StudyComments": "StudyComments",
+    "SeriesComments": "SeriesComments"
+  },
+  
+  // Performance optimizations
+  "MaximumStorageSize": 0,
+  "MaximumPatientCount": 0,
+  "DicomScuTimeout": 60,
+  "DicomAssociationCloseDelay": 5,
+  "StorageAccessOnFind": true,
+  "MetadataStorageSize": 50,
+  "ConcurrentJobs": 2,
+  "JobsHistorySize": 10,
+  "SaveJobs": true,
+  
+  // Logging
+  "LogLevel": "default",
+  "LogFile": "/tmp/orthanc.log",
+  
+  // Plugins
+  "Plugins": [
+    "/usr/share/orthanc/plugins"
+  ],
+  
+  // HTTP Timeout and retries
+  "HttpTimeout": 60,
+  "HttpRetries": 3,
+  
+  // DICOM Transfer Syntaxes
+  "DeflatedTransferSyntaxAccepted": true,
+  "JpegTransferSyntaxAccepted": true,
+  "Jpeg2000TransferSyntaxAccepted": true,
+  "JpegLosslessTransferSyntaxAccepted": true,
+  "JpipTransferSyntaxAccepted": true,
+  "Mpeg2TransferSyntaxAccepted": true,
+  "RleTransferSyntaxAccepted": true
+}
