@@ -281,10 +281,10 @@ check_orthanc() {
     log_step "Checking Orthanc server..."
     
     if curl -s http://localhost:4000/system > /dev/null 2>&1; then
-        log_info "✓ Orthanc server is running at http://localhost:4000"
+        log_info "Ã¢Å“â€œ Orthanc server is running at http://localhost:4000"
         return 0
     else
-        log_warn "✗ Orthanc server is not accessible at http://localhost:4000"
+        log_warn "Ã¢Å“â€” Orthanc server is not accessible at http://localhost:4000"
         log_info "Please make sure Orthanc server is running with DICOMWeb enabled"
         log_info "You can start Orthanc with Docker:"
         echo "  docker run -p 4000:8042 -p 4242:4242 \\"
