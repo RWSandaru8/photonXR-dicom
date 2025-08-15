@@ -1,10 +1,7 @@
-#!/usr/bin/env pwsh
-#
-# OHIF Native Build & Serve Script (No Docker) - Windows PowerShell Version
+# OHIF Native Build & Serve Script (No Docker) - Windows PowerShell
 # This script builds OHIF natively and serves it on port 3000
 #
-# Usage:
-#   .\build-native.ps1 [command]
+# Usage: .\build-native.ps1 [command]
 #
 # Commands:
 #   install   - Install dependencies
@@ -13,10 +10,10 @@
 #   dev       - Start development server
 #   clean     - Clean build artifacts
 #   full      - Install + Build + Serve
-#   start     - Complete setup (install + build + serve)
-#
+#   start     - Complete setup and start server
 
 param(
+    [Parameter(Position=0)]
     [string]$Command = "help"
 )
 
@@ -26,47 +23,40 @@ $PUBLIC_URL = "/"
 $NODE_ENV = "production"
 $APP_CONFIG = "config/orthanc-config.js"
 
-# Colored output functions
-function Write-Info {
-    param([string]$Message)
-    Write-Host "[INFO] $Message" -ForegroundColor Green
-}
-
-function Write-Warn {
-    param([string]$Message)
-    Write-Host "[WARN] $Message" -ForegroundColor Yellow
-}
-
-function Write-Error {
-    param([string]$Message)
-    Write-Host "[ERROR] $Message" -ForegroundColor Red
-}
-
-function Write-Step {
-    param([string]$Message)
-    Write-Host "[STEP] $Message" -ForegroundColor Blue
-}
+# Colors for output
+function Write-Info { param($Message) Write-Host "[INFO] $Message" -ForegroundColor Green }
+function Write-Warn { param($Message) Write-Host "[WARN] $Message" -ForegroundColor Yellow }
+function Write-Error { param($Message) Write-Host "[ERROR] $Message" -ForegroundColor Red }
+function Write-Step { param($Message) Write-Host "[STEP] $Message" -ForegroundColor Blue }
 
 # Check prerequisites
 function Test-Prerequisites {
     Write-Step "Checking prerequisites..."
     
     # Check Node.js
-    if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+    try {
+        $nodeVersion = node --version
+        $majorVersion = [int]($nodeVersion -replace 'v(\d+)\..*', '$1')
+        
+        if ($majorVersion -lt 18) {
+            Write-Error "Node.js version 18 or higher is required. Current version: $nodeVersion"
+            Write-Info "Please install Node.js 18+ from https://nodejs.org"
+            exit 1
+        }
+        
+        Write-Info "Node.js version: $nodeVersion"
+    }
+    catch {
         Write-Error "Node.js is not installed. Please install Node.js 18+ from https://nodejs.org"
         exit 1
     }
     
-    # Check Node version
-    $nodeVersion = (node -v) -replace 'v', ''
-    $majorVersion = [int]($nodeVersion -split '\.')[0]
-    if ($majorVersion -lt 18) {
-        Write-Error "Node.js version 18 or higher is required. Current version: $(node -v)"
-        exit 1
-    }
-    
     # Check yarn
-    if (-not (Get-Command yarn -ErrorAction SilentlyContinue)) {
+    try {
+        $yarnVersion = yarn --version
+        Write-Info "Yarn version: $yarnVersion"
+    }
+    catch {
         Write-Info "Yarn not found, installing..."
         npm install -g yarn
     }
@@ -78,8 +68,6 @@ function Test-Prerequisites {
     }
     
     Write-Info "Prerequisites check passed"
-    Write-Info "Node.js version: $(node -v)"
-    Write-Info "Yarn version: $(yarn -v)"
 }
 
 # Install dependencies
@@ -104,15 +92,17 @@ function Set-Configuration {
     Write-Step "Setting up configuration..."
     
     # Ensure the config directory exists
-    if (-not (Test-Path "platform\app\public\config")) {
-        New-Item -ItemType Directory -Path "platform\app\public\config" -Force | Out-Null
+    $configDir = "platform\app\public\config"
+    if (-not (Test-Path $configDir)) {
+        New-Item -ItemType Directory -Path $configDir -Force | Out-Null
     }
     
     # Copy config from root config/ to platform/app/public/config/
     if (Test-Path "config\orthanc-config.js") {
         Write-Info "Copying Orthanc configuration..."
-        Copy-Item "config\orthanc-config.js" "platform\app\public\config\" -Force
-    } else {
+        Copy-Item "config\orthanc-config.js" "$configDir\orthanc-config.js" -Force
+    }
+    else {
         Write-Error "Config file not found: config\orthanc-config.js"
         Write-Info "Creating default Orthanc config..."
         New-DefaultConfig
@@ -127,7 +117,7 @@ function New-DefaultConfig {
         New-Item -ItemType Directory -Path "config" -Force | Out-Null
     }
     
-    $configContent = @'
+    $defaultConfig = @'
 /** @type {AppTypes.Config} */
 window.config = {
   name: 'config/orthanc-config.js',
@@ -185,13 +175,15 @@ window.config = {
 };
 '@
     
-    Set-Content -Path "config\orthanc-config.js" -Value $configContent
+    $defaultConfig | Out-File -FilePath "config\orthanc-config.js" -Encoding UTF8
     
     # Copy to build location
-    if (-not (Test-Path "platform\app\public\config")) {
-        New-Item -ItemType Directory -Path "platform\app\public\config" -Force | Out-Null
+    $configDir = "platform\app\public\config"
+    if (-not (Test-Path $configDir)) {
+        New-Item -ItemType Directory -Path $configDir -Force | Out-Null
     }
-    Copy-Item "config\orthanc-config.js" "platform\app\public\config\" -Force
+    Copy-Item "config\orthanc-config.js" "$configDir\orthanc-config.js" -Force
+    
     Write-Info "Default Orthanc config created"
 }
 
@@ -235,7 +227,10 @@ function Start-Server {
     }
     
     # Install serve if not available
-    if (-not (Get-Command serve -ErrorAction SilentlyContinue)) {
+    try {
+        serve --version | Out-Null
+    }
+    catch {
         Write-Info "Installing serve globally..."
         npm install -g serve
     }
@@ -247,9 +242,14 @@ function Start-Server {
     Write-Info "Config: Orthanc on http://localhost:4000"
     Write-Info "============================"
     
-    # Change to build directory and serve
-    Set-Location "platform\app\dist"
-    serve -s . -p $PORT
+    # Serve the application
+    Push-Location "platform\app\dist"
+    try {
+        serve -s . -p $PORT
+    }
+    finally {
+        Pop-Location
+    }
 }
 
 # Development server
@@ -268,8 +268,13 @@ function Start-DevServer {
     Write-Info "Development mode - hot reloading enabled"
     
     # Start development server
-    Set-Location "platform\app"
-    yarn start
+    Push-Location "platform\app"
+    try {
+        yarn start
+    }
+    finally {
+        Pop-Location
+    }
 }
 
 # Clean build artifacts
@@ -277,12 +282,20 @@ function Clear-Build {
     Write-Step "Cleaning build artifacts..."
     
     # Remove build directories
-    if (Test-Path "platform\app\dist") { Remove-Item -Recurse -Force "platform\app\dist" }
-    if (Test-Path "platform\app\build") { Remove-Item -Recurse -Force "platform\app\build" }
-    if (Test-Path ".parcel-cache") { Remove-Item -Recurse -Force ".parcel-cache" }
-    if (Test-Path "node_modules\.cache") { Remove-Item -Recurse -Force "node_modules\.cache" }
+    $pathsToRemove = @(
+        "platform\app\dist",
+        "platform\app\build",
+        ".parcel-cache",
+        "node_modules\.cache"
+    )
     
-    # Clean yarn cache
+    foreach ($path in $pathsToRemove) {
+        if (Test-Path $path) {
+            Remove-Item -Recurse -Force $path
+        }
+    }
+    
+    # Remove yarn cache
     yarn cache clean
     
     Write-Info "Clean completed"
@@ -316,7 +329,7 @@ function Show-AccessInfo {
     Write-Host "Orthanc Web UI:      http://localhost:4000" -ForegroundColor White
     Write-Host "Orthanc DICOMWeb:    http://localhost:4000/dicom-web" -ForegroundColor White
     Write-Host "DICOM C-STORE Port:  4242" -ForegroundColor White
-    Write-Host "==============================" -ForegroundColor White
+    Write-Host "==========================" -ForegroundColor White
 }
 
 # Full deployment
@@ -337,7 +350,7 @@ function Start-FullDeployment {
     Write-Info "Run '.\build-native.ps1 serve' to start the server"
 }
 
-# Start Orthanc with Docker
+# Start Orthanc with Docker (helper function)
 function Start-Orthanc {
     Write-Step "Starting Orthanc server with Docker..."
     
@@ -350,8 +363,8 @@ function Start-Orthanc {
     }
     
     # Stop any existing Orthanc container
-    docker stop orthanc-server 2>$null | Out-Null
-    docker rm orthanc-server 2>$null | Out-Null
+    docker stop orthanc-server 2>$null
+    docker rm orthanc-server 2>$null
     
     # Start Orthanc
     Write-Info "Starting Orthanc on port 4000..."
@@ -366,9 +379,9 @@ function Start-Orthanc {
         -e ORTHANC__DICOM_WEB__ROOT=/dicom-web/ `
         -e ORTHANC__AUTHENTICATION_ENABLED=false `
         -e ORTHANC__HTTP_CORS__ENABLED=true `
-        -e "ORTHANC__HTTP_CORS__ALLOWED_ORIGINS=*" `
-        -e "ORTHANC__HTTP_CORS__ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS" `
-        -e "ORTHANC__HTTP_CORS__ALLOWED_HEADERS=*" `
+        -e ORTHANC__HTTP_CORS__ALLOWED_ORIGINS=* `
+        -e ORTHANC__HTTP_CORS__ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS `
+        -e ORTHANC__HTTP_CORS__ALLOWED_HEADERS=* `
         orthancteam/orthanc:latest
     
     Write-Info "Waiting for Orthanc to start..."
