@@ -16,7 +16,7 @@ $requiredFiles = @(
 $requiredDirectories = @(
     "addOns",
     "extensions",
-    "modes", 
+    "modes",
     "platform",
     "orthanc-config"
 )
@@ -63,27 +63,27 @@ Write-Host "`n📊 Verification Summary:" -ForegroundColor Cyan
 if ($missingFiles.Count -eq 0 -and $missingDirectories.Count -eq 0) {
     Write-Host "✅ All required files and directories are present!" -ForegroundColor Green
     Write-Host "🚀 Ready to build Docker image!" -ForegroundColor Green
-    
+
     if ($missingPackageJson.Count -gt 0) {
         Write-Host "⚠️  Note: Some package.json files are missing, but this may not prevent the build" -ForegroundColor Yellow
     }
-    
+
     exit 0
 } else {
     Write-Host "❌ Build verification failed!" -ForegroundColor Red
     Write-Host "Missing files: $($missingFiles.Count)" -ForegroundColor Red
     Write-Host "Missing directories: $($missingDirectories.Count)" -ForegroundColor Red
-    
+
     if ($missingFiles.Count -gt 0) {
         Write-Host "`nMissing files:" -ForegroundColor Red
         $missingFiles | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
     }
-    
+
     if ($missingDirectories.Count -gt 0) {
         Write-Host "`nMissing directories:" -ForegroundColor Red
         $missingDirectories | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
     }
-    
+
     Write-Host "`nPlease ensure all required files are present before building." -ForegroundColor Red
     exit 1
 }

@@ -19,7 +19,7 @@ services:
       - PUBLIC_URL=/
       - NODE_ENV=production
     volumes:
-      # Mount SSL certificates if available
+      # Mount SSL certificates from host
       - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
       - dicom-network
@@ -33,31 +33,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    ports:
-      - '3000:3000'
-    environment:
-      - PORT=3000
-      - PUBLIC_URL=/
-      - NODE_ENV=production
-    networks:
-      - dicom-network
-    depends_on:
-      orthanc:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:3000/']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   orthanc:
     image: orthancteam/orthanc:24.8.1
     container_name: orthanc-server
     ports:
-      - '4000:8042' # Orthanc web interface
-      - '4242:4242' # DICOM port
+      - "4000:8042"    # Orthanc web interface
+      - "4242:4242"    # DICOM port
     environment:
       - ORTHANC__NAME=OHIF-Orthanc
       - ORTHANC__DICOM_WEB__ENABLE=true
@@ -85,7 +67,7 @@ services:
       - dicom-network
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:8042/system']
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8042/system"]
       interval: 10s
       timeout: 5s
       retries: 5

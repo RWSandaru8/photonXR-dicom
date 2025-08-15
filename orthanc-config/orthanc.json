@@ -12,7 +12,7 @@
   "SslEnabled": false,
   "HttpCompressionEnabled": true,
   "HttpRequestTimeout": 60,
-  
+
   // CORS Configuration for OHIF
   "HttpCors": {
     "Enabled": true,
@@ -22,7 +22,7 @@
     "AllowCredentials": false,
     "MaxAge": 86400
   },
-  
+
   // DICOMWeb plugin configuration
   "DicomWeb": {
     "Enable": true,
@@ -46,7 +46,7 @@
     "StudyComments": "StudyComments",
     "SeriesComments": "SeriesComments"
   },
-  
+
   // Performance optimizations
   "MaximumStorageSize": 0,
   "MaximumPatientCount": 0,
@@ -57,20 +57,18 @@
   "ConcurrentJobs": 2,
   "JobsHistorySize": 10,
   "SaveJobs": true,
-  
+
   // Logging
   "LogLevel": "default",
   "LogFile": "/tmp/orthanc.log",
-  
+
   // Plugins
-  "Plugins": [
-    "/usr/share/orthanc/plugins"
-  ],
-  
+  "Plugins": ["/usr/share/orthanc/plugins"],
+
   // HTTP Timeout and retries
   "HttpTimeout": 60,
   "HttpRetries": 3,
-  
+
   // DICOM Transfer Syntaxes
   "DeflatedTransferSyntaxAccepted": true,
   "JpegTransferSyntaxAccepted": true,

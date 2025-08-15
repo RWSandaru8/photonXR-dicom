@@ -22,9 +22,9 @@ window.config = {
     thumbnail: 75,
     prefetch: 25,
   },
-  
+
   defaultDataSourceName: 'orthanc',
-  
+
   dataSources: [
     {
       namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
@@ -58,14 +58,16 @@ window.config = {
       },
     },
   ],
-  
+
   httpErrorHandler: error => {
     console.warn('HTTP Error Status:', error.status);
     if (error.status === 0) {
-      console.error('Network error or CORS issue. Please check if Orthanc server is running and CORS is properly configured.');
+      console.error(
+        'Network error or CORS issue. Please check if Orthanc server is running and CORS is properly configured.'
+      );
     }
   },
-  
+
   // CORS configuration
   cors: {
     enabled: true,

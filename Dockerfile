@@ -1,59 +1,31 @@
 # syntax=docker/dockerfile:1.7-labs
-# This dockerfile is used to publish the `ohif/app` image on dockerhub.
-#
-# It's a good example of how to build our static application and package it
-# with a web server capable of hosting it as static content.
-#
-# docker build
-# --------------
-# If you would like to use this dockerfile to build and tag an image, make sure
-# you set the context to the project's root directory:
-# https://docs.docker.com/engine/reference/commandline/build/
-#
-#
-# SUMMARY
-# --------------
-# This dockerfile has two stages:
-#
-# 1. Building the React application for production
-# 2. Setting up our Nginx (Alpine Linux) image w/ step one's output
-#
-
-
-# syntax=docker/dockerfile:1.7-labs
-# This dockerfile is used to publish the `ohif/app` image on dockerhub.
-#
-# It's a good example of how to build our static application and package it
-# with a web server capable of hosting it as static content.
-#
-# docker build
-# --------------
-# If you would like to use this dockerfile to build and tag an image, make sure
-# you set the context to the project's root directory:
-# https://docs.docker.com/engine/reference/commandline/build/
-#
-#
-# SUMMARY
-# --------------
-# This dockerfile is used as an input for a second stage to make things run faster.
-#
-
+# Production-ready OHIF Viewer with Orthanc integration
+# Build: docker build -t ohif-viewer:latest .
+# Run: docker run -p 3000:80 ohif-viewer:latest
 
 # Stage 1: Build the application
-# docker build -t ohif/viewer:latest .
-# Copy Files
 FROM node:20.18.1-slim as builder
 
-# Install dependencies in one layer and clean up
-RUN apt-get update && apt-get install -y build-essential python3 && \
-    rm -rf /var/lib/apt/lists/* && \
-    apt-get clean
+# Install system dependencies and clean up in one layer
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    python3 \
+    git \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 WORKDIR /usr/src/app
+
+# Install package managers
 RUN command -v yarn >/dev/null 2>&1 || npm install -g yarn
+
+# Set environment for optimization
+ENV NODE_ENV=production
+ENV GENERATE_SOURCEMAP=false
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 ENV PATH=/usr/src/app/node_modules/.bin:$PATH
 
-# Do an initial install and then a final install
+# Copy package files for dependency installation (better Docker layer caching)
 COPY package.json yarn.lock preinstall.js lerna.json ./
 
 # Copy package.json files in batches to optimize Docker layer caching
@@ -118,16 +90,24 @@ RUN NODE_OPTIONS="--max-old-space-size=4096" yarn run show:config
 RUN NODE_OPTIONS="--max-old-space-size=4096" yarn run build
 
 # Precompress files for better nginx performance
-RUN chmod +x .docker/compressDist.sh && ./.docker/compressDist.sh
+RUN echo "Compressing static files..." && \
+    cd platform/app/dist && \
+    find . -name "*.js" -type f -exec gzip -9 -k {} \; && \
+    find . -name "*.css" -type f -exec gzip -9 -k {} \; && \
+    find . -name "*.svg" -type f -exec gzip -9 -k {} \; && \
+    find . -name "*.html" -type f -exec gzip -9 -k {} \; && \
+    echo "Compression completed" || echo "Compression failed, continuing without compression"
 
 # Stage 2: Production nginx server
 FROM nginxinc/nginx-unprivileged:1.27-alpine as final
 
 # Set build args and environment variables
 ARG PUBLIC_URL=/
-ARG PORT=3000
+ARG PORT=80
+ARG SSL_PORT=443
 ENV PUBLIC_URL=${PUBLIC_URL}
 ENV PORT=${PORT}
+ENV SSL_PORT=${SSL_PORT}
 
 # Configure nginx
 RUN rm /etc/nginx/conf.d/default.conf
@@ -148,10 +128,10 @@ USER root
 RUN chown -R nginx:nginx /usr/share/nginx/html
 USER nginx
 
-# Health check
+# Health check - use port 80 internally
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:${PORT}/ || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost:80/health || exit 1
 
-EXPOSE ${PORT}
+EXPOSE 80 443
 ENTRYPOINT ["/usr/src/entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
