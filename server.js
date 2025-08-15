@@ -1,165 +1,159 @@
 const express = require('express');
+const https = require('https');
 const bodyParser = require('body-parser');
-const cors = require('cors'); // <-- Add this
+const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const url = require('url');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000;
+const ORTHANC_URL = 'https://dentax.globalpearlventures.com:4000';
 
-app.use(cors()); // <-- Enable CORS for all origins
-app.use(bodyParser.json());
+// SSL Configuration
+const sslOptions = {
+  key: fs.readFileSync('/etc/letsencrypt/live/dentax.globalpearlventures.com/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/dentax.globalpearlventures.com/fullchain.pem'),
+};
 
-// Serve raw DICOM files so the viewer (OpenDicom.tsx) can fetch them
-// Place your .dcm files under ./Dicom   (e.g. Dicom/0002213.dcm)
-app.use('/Dicom', express.static(path.join(__dirname, 'Dicom')));
+// CORS configuration for OHIF viewer
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+}));
 
-// Check if a path is a URL
-function isUrl(path) {
-  return path.startsWith('http://') || path.startsWith('https://');
-}
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
-// Function to extract file paths from a URL or local path
-function getActualPath(inputPath) {
-  // Handle URLs
-  if (isUrl(inputPath)) {
-    try {
-      const parsedUrl = new URL(inputPath);
-      return parsedUrl.pathname;
-    } catch (error) {
-      console.error('Error parsing URL:', error);
-      return inputPath;
-    }
+// Proxy middleware for Orthanc API calls
+const orthancProxy = createProxyMiddleware({
+  target: ORTHANC_URL,
+  changeOrigin: true,
+  secure: true, // Set to false if Orthanc uses self-signed certificates
+  logLevel: 'debug',
+  onProxyReq: (proxyReq, req, res) => {
+    console.log(`Proxying ${req.method} ${req.url} to ${ORTHANC_URL}${req.url}`);
+  },
+  onError: (err, req, res) => {
+    console.error('Proxy error:', err);
+    res.status(500).json({ error: 'Proxy error', message: err.message });
   }
-  // Handle local paths
-  return inputPath;
-}
+});
 
-// Function to list all DICOM files in a directory
-async function getDicomFilesFromDirectory(dirPath, originalUrl) {
-  // If the original URL is from a remote server, we can't directly read the directory
-  // For remote URLs, we'll redirect with the folder URL and let the frontend handle it
-  if (originalUrl && isUrl(originalUrl)) {
-    console.log(`Remote URL detected: ${originalUrl}`);
-    // For remote URLs, we'll just assume it's a folder and return the folder path itself
-    // The frontend viewer will be responsible for listing/loading the files
-    return ['REMOTE_FOLDER'];
-  }
+// Proxy all Orthanc API requests
+app.use('/dicom-web', orthancProxy);
+app.use('/orthanc', orthancProxy);
+app.use('/studies', orthancProxy);
+app.use('/series', orthancProxy);
+app.use('/instances', orthancProxy);
+app.use('/patients', orthancProxy);
+app.use('/modalities', orthancProxy);
+app.use('/peers', orthancProxy);
+
+// API endpoint for OHIF configuration
+app.get('/api/config', (req, res) => {
+  const config = {
+    routerBasename: '/',
+    modes: ['@ohif/mode-longitudinal'],
+    dataSources: [
+      {
+        namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
+        configuration: {
+          friendlyName: 'Orthanc DICOM Server',
+          name: 'orthanc',
+          wadoUriRoot: `${ORTHANC_URL}/wado`,
+          qidoRoot: `${ORTHANC_URL}/dicom-web`,
+          wadoRoot: `${ORTHANC_URL}/dicom-web`,
+          qidoSupportsIncludeField: false,
+          imageRendering: 'wadors',
+          thumbnailRendering: 'wadors',
+          enableStudyLazyLoad: true,
+          supportsFuzzyMatching: false,
+          supportsWildcard: true,
+        },
+      },
+    ],
+    defaultDataSourceName: 'orthanc',
+    httpErrorHandler: (error) => {
+      console.error('HTTP Error:', error);
+    },
+  };
   
-  // For local paths, proceed with file system operations
-  try {
-    let fullPath = dirPath;
-    
-    // If it's a relative path, make it relative to server root
-    if (dirPath.startsWith('/')) {
-      fullPath = path.join(__dirname, dirPath);
-    } else if (!dirPath.includes(':\\')) {
-      // Not an absolute Windows path, treat as relative to server
-      fullPath = path.join(__dirname, dirPath);
-    }
+  res.json(config);
+});
 
-    console.log(`Reading local directory: ${fullPath}`);
-    
-    // Check if directory exists and is accessible
-    const stats = await fs.promises.stat(fullPath);
-    if (!stats.isDirectory()) {
-      throw new Error('Not a directory');
-    }
-    
-    // Read directory contents
-    const files = await fs.promises.readdir(fullPath);
-    
-    // Filter for DICOM files and create full paths
-    const dicomFiles = files
-      .filter(file => /\.(dcm|DCM|dicom)$/.test(file) || !path.extname(file))
-      .map(file => path.join(dirPath, file));
-    
-    console.log(`Found ${dicomFiles.length} DICOM files in directory`);
-    return dicomFiles;
-  } catch (error) {
-    console.error(`Error reading directory: ${error.message}`);
-    return [];
-  }
-}
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    orthanc: ORTHANC_URL,
+    port: PORT
+  });
+});
 
+// Legacy endpoint for backward compatibility
 app.post('/open-dicom', async (req, res) => {
-  console.log('Received request to open DICOM file');
-  console.debug('Request body:', req.body);
+  console.log('Received legacy request to open DICOM file');
   const { url: inputUrl } = req.body || {};
   
   if (!inputUrl) {
     return res.status(400).json({ error: 'Missing "url" in JSON body' });
   }
 
-  // Extract the path from URL
-  let filePath = getActualPath(inputUrl);
-  
-  // Check if the path ends with a typical file extension for DICOM files
-  // Common DICOM extensions: .dcm, .DCM, .dicom, no extension
-  const isDicomFile = /\.(dcm|DCM|dicom)$/.test(filePath);
-  
-  // Check if it's likely a directory (doesn't have a file extension)
-  const isDicomFolder = !isDicomFile;
-  
-  if (isDicomFolder) {
-    console.log('This is a dicom folder');
-    
-    try {
-      // For remote URLs, handle differently
-      if (isUrl(inputUrl)) {
-        console.log('Remote DICOM folder detected');
-        
-        // For remote folders, pass the folder URL to the viewer
-        // The viewer will handle listing and loading the files
-        const redirectTo = `/viewer/open?dicomFolderUrl=${encodeURIComponent(inputUrl)}`;
-        return res.redirect(302, redirectTo);
-      }
-      
-      // For local folders, get all DICOM files in the directory
-      const dicomFiles = await getDicomFilesFromDirectory(filePath, inputUrl);
-      
-      if (dicomFiles.length === 0) {
-        return res.status(404).json({ 
-          error: 'No DICOM files found in directory', 
-          path: inputUrl 
-        });
-      }
-      
-      // Create a studyList parameter with all files
-      const fileList = dicomFiles.map(file => {
-        // Convert back to URLs if needed
-        let fileUrl = file;
-        if (file !== 'REMOTE_FOLDER' && isUrl(inputUrl)) {
-          const baseUrl = inputUrl.substring(0, inputUrl.lastIndexOf('/') + 1);
-          const fileName = path.basename(file);
-          fileUrl = `${baseUrl}${fileName}`;
-        }
-        return encodeURIComponent(fileUrl);
-      }).join(',');
-      
-      // Redirect to viewer with multiple files parameter
-      const redirectTo = `/viewer/open?studyList=${fileList}`;
-      return res.redirect(302, redirectTo);
-    } catch (error) {
-      console.error('Error processing DICOM folder:', error);
-      return res.status(500).json({ 
-        error: `Error processing DICOM folder: ${error.message}`,
-        path: inputUrl 
-      });
-    }
-  } else {
-    // Original logic for single file
-    const redirectTo = `/viewer/open?dicomUrl=${encodeURIComponent(inputUrl)}`;
-    return res.redirect(302, redirectTo);
-  }
+  // Redirect to viewer with the URL
+  const redirectTo = `/viewer?url=${encodeURIComponent(inputUrl)}`;
+  return res.redirect(302, redirectTo);
 });
 
-app.use(express.static(path.join(__dirname, 'platform', 'app', 'dist')));
+// Serve static files from the built OHIF application
+app.use(express.static(path.join(__dirname, 'platform', 'app', 'dist'), {
+  maxAge: '1d',
+  etag: false,
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js') || path.endsWith('.css')) {
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    }
+  }
+}));
+
+// Catch-all handler for SPA routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'platform', 'app', 'dist', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Express server listening on http://localhost:${PORT}`);
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Server error:', error);
+  res.status(500).json({ 
+    error: 'Internal Server Error', 
+    message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong' 
+  });
+});
+
+// Create HTTPS server
+const httpsServer = https.createServer(sslOptions, app);
+
+httpsServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 OHIF Viewer HTTPS server running on https://dentax.globalpearlventures.com:${PORT}`);
+  console.log(`📡 Proxying Orthanc requests to: ${ORTHANC_URL}`);
+  console.log(`🔒 SSL certificates loaded successfully`);
+  console.log(`📊 Health check available at: https://dentax.globalpearlventures.com:${PORT}/api/health`);
+});
+
+// Handle server shutdown gracefully
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  httpsServer.close(() => {
+    console.log('Server closed');
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  httpsServer.close(() => {
+    console.log('Server closed');
+  });
 });

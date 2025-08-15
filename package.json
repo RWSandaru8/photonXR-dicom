@@ -80,6 +80,7 @@
     "cors": "^2.8.5",
     "execa": "^8.0.1",
     "express": "^4.19.2",
+    "http-proxy-middleware": "^2.0.6",
     "lerna": "^8.2.2"
   },
   "optionalDependencies": {
