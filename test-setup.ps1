@@ -4,7 +4,7 @@ Write-Host "Testing OHIF and Orthanc Setup..." -ForegroundColor Green
 # Function to test HTTP endpoint
 function Test-Endpoint {
     param([string]$Url, [string]$Name)
-
+    
     try {
         $response = Invoke-WebRequest -Uri $Url -TimeoutSec 10 -UseBasicParsing
         if ($response.StatusCode -eq 200) {
@@ -22,7 +22,7 @@ function Test-Endpoint {
 # Function to check if container is running
 function Test-Container {
     param([string]$ContainerName)
-
+    
     $container = docker ps --filter "name=$ContainerName" --format "{{.Names}}"
     if ($container -eq $ContainerName) {
         Write-Host "✓ Container '$ContainerName' is running" -ForegroundColor Green

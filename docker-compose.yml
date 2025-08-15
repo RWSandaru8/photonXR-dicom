@@ -1,3 +1,22 @@
+veservices:
+  ohif-viewer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - APP_CONFIG=config/orthanc-config.js
+        - PUBLIC_URL=/
+        - PORT=3000
+      target: final
+    container_name: ohif-viewer
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - PUBLIC_URL=/
+      - NODE_ENV=production
+    networks:
+      - dicom-network
 services:
   ohif-viewer:
     build:
@@ -6,35 +25,11 @@ services:
       args:
         - APP_CONFIG=config/orthanc-config.js
         - PUBLIC_URL=/
-        - PORT=80
-        - SSL_PORT=443
+        - PORT=3000
       target: final
     container_name: ohif-viewer
     ports:
-      - "3000:80"     # HTTP port mapping
-      - "3443:443"    # HTTPS port mapping
-    environment:
-      - PORT=80
-      - SSL_PORT=443
-      - PUBLIC_URL=/
-      - NODE_ENV=production
-    volumes:
-      # Mount SSL certificates if available
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-    networks:
-      - dicom-network
-    depends_on:
-      orthanc:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    ports:
-      - '3000:3000'
+      - "3000:3000"
     environment:
       - PORT=3000
       - PUBLIC_URL=/
@@ -46,7 +41,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:3000/']
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -85,7 +80,7 @@ services:
       - dicom-network
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:8042/system']
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8042/system"]
       interval: 10s
       timeout: 5s
       retries: 5
