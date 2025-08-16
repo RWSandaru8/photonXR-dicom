@@ -9,6 +9,7 @@ window.config = {
   showWarningMessageForCrossOrigin: false,
   showCPUFallbackMessage: true,
   strictZSpacingForVolumeViewport: true,
+  groupEnabledModesFirst: true,
   
   defaultDataSourceName: 'orthanc',
   dataSources: [
@@ -18,7 +19,7 @@ window.config = {
       configuration: {
         friendlyName: 'Orthanc DICOM Server',
         name: 'orthanc',
-        // Use relative URLs that will be proxied by our server
+        // Use relative URLs that will be proxied by our HTTPS server
         wadoUriRoot: '/wado',
         qidoRoot: '/dicom-web',
         wadoRoot: '/dicom-web',
@@ -28,7 +29,7 @@ window.config = {
         enableStudyLazyLoad: true,
         supportsFuzzyMatching: false,
         supportsWildcard: true,
-        // The authentication will be handled by the proxy
+        // Authentication is handled by the server proxy, so no headers needed here
         requestOptions: {
           headers: {},
         },
@@ -36,6 +37,7 @@ window.config = {
     },
   ],
   httpErrorHandler: function (error) {
-    console.error('HTTP Error:', error);
+    console.error('HTTP Error from Orthanc:', error);
+    console.log('If you see this error, check the Orthanc server connection');
   },
 };
