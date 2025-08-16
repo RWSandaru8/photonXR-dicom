@@ -17,12 +17,14 @@ const sslOptions = {
 };
 
 // CORS configuration for OHIF viewer
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-}));
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  })
+);
 
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
@@ -35,9 +37,6 @@ const orthancProxy = createProxyMiddleware({
   logLevel: 'debug',
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxying ${req.method} ${req.url} to ${ORTHANC_URL}${req.url}`);
-    // Add basic authentication for Orthanc
-    const auth = Buffer.from('admin:admin123').toString('base64');
-    proxyReq.setHeader('Authorization', `Basic ${auth}`);
   },
   onError: (err, req, res) => {
     console.error('Proxy error:', err);
@@ -47,7 +46,6 @@ const orthancProxy = createProxyMiddleware({
 
 // Proxy all Orthanc API requests
 app.use('/dicom-web', orthancProxy);
-app.use('/wado', orthancProxy);
 app.use('/orthanc', orthancProxy);
 app.use('/studies', orthancProxy);
 app.use('/series', orthancProxy);
@@ -76,15 +74,6 @@ app.get('/api/config', (req, res) => {
           enableStudyLazyLoad: true,
           supportsFuzzyMatching: false,
           supportsWildcard: true,
-          headers: {
-            Authorization: 'Basic ' + Buffer.from('admin:admin123').toString('base64'),
-          },
-          requestOptions: {
-            auth: {
-              username: 'admin',
-              password: 'admin123',
-            },
-          },
         },
       },
     ],
@@ -107,19 +96,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Debug endpoint to check configuration
-app.get('/api/debug', (req, res) => {
-  res.json({
-    server: 'OHIF Viewer with Orthanc Proxy',
-    orthanc_url: ORTHANC_URL,
-    port: PORT,
-    proxy_routes: ['/dicom-web', '/wado', '/orthanc', '/studies', '/series', '/instances'],
-    auth: 'Basic auth configured for Orthanc',
-    ssl: 'HTTPS enabled',
-    config_endpoints: ['/api/config', '/api/health', '/api/debug'],
-  });
-});
-
 // Legacy endpoint for backward compatibility
 app.post('/open-dicom', async (req, res) => {
   console.log('Received legacy request to open DICOM file');
@@ -139,8 +115,8 @@ app.use(
   express.static(path.join(__dirname, 'platform', 'app', 'dist'), {
     maxAge: '1d',
     etag: false,
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+    setHeaders: (res, path) => {
+      if (path.endsWith('.js') || path.endsWith('.css')) {
         res.setHeader('Cache-Control', 'public, max-age=86400');
       }
     },
@@ -153,7 +129,7 @@ app.get('*', (req, res) => {
 });
 
 // Error handling middleware
-app.use((error, req, res) => {
+app.use((error, req, res, next) => {
   console.error('Server error:', error);
   res.status(500).json({
     error: 'Internal Server Error',
@@ -165,10 +141,14 @@ app.use((error, req, res) => {
 const httpsServer = https.createServer(sslOptions, app);
 
 httpsServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 OHIF Viewer HTTPS server running on https://dentax.globalpearlventures.com:${PORT}`);
+  console.log(
+    `🚀 OHIF Viewer HTTPS server running on https://dentax.globalpearlventures.com:${PORT}`
+  );
   console.log(`📡 Proxying Orthanc requests to: ${ORTHANC_URL}`);
   console.log(`🔒 SSL certificates loaded successfully`);
-  console.log(`📊 Health check available at: https://dentax.globalpearlventures.com:${PORT}/api/health`);
+  console.log(
+    `📊 Health check available at: https://dentax.globalpearlventures.com:${PORT}/api/health`
+  );
 });
 
 // Handle server shutdown gracefully

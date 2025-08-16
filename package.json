@@ -24,9 +24,8 @@
   },
   "scripts": {
     "cm": "npx git-cz",
-    "build": "cross-env NODE_ENV=production APP_CONFIG=config/production.js PUBLIC_URL=/ lerna run build:viewer --stream",
+    "build": "lerna run build:viewer --stream",
     "build:dev": "lerna run build:dev --stream",
-    "build:production": "cross-env NODE_ENV=production APP_CONFIG=config/production.js PUBLIC_URL=/ lerna run build:viewer --stream",
     "build:ci": "lerna run build:viewer:ci --stream",
     "build:qa": "lerna run build:viewer:qa --stream",
     "clean": "npx lerna run clean --stream",
@@ -79,7 +78,6 @@
   "dependencies": {
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
-    "cross-env": "^7.0.3",
     "execa": "^8.0.1",
     "express": "^4.19.2",
     "http-proxy-middleware": "^2.0.6",
