@@ -43,8 +43,10 @@ echo "📦 Installing dependencies..."
 yarn install --production=false
 
 # Build the project
-echo "🔨 Building OHIF viewer..."
-yarn build
+echo "🔨 Building OHIF viewer with production config..."
+export APP_CONFIG=config/production.js
+export NODE_ENV=production
+yarn build:production
 
 # Check SSL certificates
 echo "🔒 Checking SSL certificates..."

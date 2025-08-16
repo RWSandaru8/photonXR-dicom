@@ -21,7 +21,7 @@ app.use(cors({
   origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 }));
 
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -35,15 +35,19 @@ const orthancProxy = createProxyMiddleware({
   logLevel: 'debug',
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxying ${req.method} ${req.url} to ${ORTHANC_URL}${req.url}`);
+    // Add basic authentication for Orthanc
+    const auth = Buffer.from('admin:admin123').toString('base64');
+    proxyReq.setHeader('Authorization', `Basic ${auth}`);
   },
   onError: (err, req, res) => {
     console.error('Proxy error:', err);
     res.status(500).json({ error: 'Proxy error', message: err.message });
-  }
+  },
 });
 
 // Proxy all Orthanc API requests
 app.use('/dicom-web', orthancProxy);
+app.use('/wado', orthancProxy);
 app.use('/orthanc', orthancProxy);
 app.use('/studies', orthancProxy);
 app.use('/series', orthancProxy);
@@ -72,25 +76,47 @@ app.get('/api/config', (req, res) => {
           enableStudyLazyLoad: true,
           supportsFuzzyMatching: false,
           supportsWildcard: true,
+          headers: {
+            Authorization: 'Basic ' + Buffer.from('admin:admin123').toString('base64'),
+          },
+          requestOptions: {
+            auth: {
+              username: 'admin',
+              password: 'admin123',
+            },
+          },
         },
       },
     ],
     defaultDataSourceName: 'orthanc',
-    httpErrorHandler: (error) => {
+    httpErrorHandler: error => {
       console.error('HTTP Error:', error);
     },
   };
-  
+
   res.json(config);
 });
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
     orthanc: ORTHANC_URL,
-    port: PORT
+    port: PORT,
+  });
+});
+
+// Debug endpoint to check configuration
+app.get('/api/debug', (req, res) => {
+  res.json({
+    server: 'OHIF Viewer with Orthanc Proxy',
+    orthanc_url: ORTHANC_URL,
+    port: PORT,
+    proxy_routes: ['/dicom-web', '/wado', '/orthanc', '/studies', '/series', '/instances'],
+    auth: 'Basic auth configured for Orthanc',
+    ssl: 'HTTPS enabled',
+    config_endpoints: ['/api/config', '/api/health', '/api/debug'],
   });
 });
 
@@ -98,7 +124,7 @@ app.get('/api/health', (req, res) => {
 app.post('/open-dicom', async (req, res) => {
   console.log('Received legacy request to open DICOM file');
   const { url: inputUrl } = req.body || {};
-  
+
   if (!inputUrl) {
     return res.status(400).json({ error: 'Missing "url" in JSON body' });
   }
@@ -109,15 +135,17 @@ app.post('/open-dicom', async (req, res) => {
 });
 
 // Serve static files from the built OHIF application
-app.use(express.static(path.join(__dirname, 'platform', 'app', 'dist'), {
-  maxAge: '1d',
-  etag: false,
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js') || path.endsWith('.css')) {
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-    }
-  }
-}));
+app.use(
+  express.static(path.join(__dirname, 'platform', 'app', 'dist'), {
+    maxAge: '1d',
+    etag: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+      }
+    },
+  })
+);
 
 // Catch-all handler for SPA routing
 app.get('*', (req, res) => {
@@ -125,11 +153,11 @@ app.get('*', (req, res) => {
 });
 
 // Error handling middleware
-app.use((error, req, res, next) => {
+app.use((error, req, res) => {
   console.error('Server error:', error);
-  res.status(500).json({ 
-    error: 'Internal Server Error', 
-    message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong' 
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong',
   });
 });
 

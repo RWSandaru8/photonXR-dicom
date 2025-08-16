@@ -1,7 +1,13 @@
 # OHIF Viewer Deployment Guide
 
 ## Overview
-This customized OHIF viewer is configured to run on HTTPS port 3000 and connect to an Orthanc server running on port 4000.
+This customized OHIF viewer is configured to run on HTTPS port 3000 and connect to an Orthanc server running on port 4000 with authentication (admin/admin123).
+
+## Configuration
+The viewer uses a custom production configuration that:
+- Points to your Orthanc server at `https://dentax.globalpearlventures.com:4000`
+- Includes proper authentication headers for Orthanc
+- Proxies all DICOM-Web requests through the HTTPS server
 
 ## Linux Server Deployment
 
@@ -20,9 +26,9 @@ cd photonXR-dicom
 yarn install
 ```
 
-2. **Build the OHIF viewer:**
+2. **Build the OHIF viewer with production config:**
 ```bash
-yarn build
+yarn build:production
 ```
 
 3. **Install PM2 for production process management:**
@@ -43,7 +49,7 @@ pm2 save
 
 ### Development Commands
 - `yarn dev` - Start development server
-- `yarn build` - Build production version
+- `yarn build:production` - Build production version with custom Orthanc config
 - `yarn start:server` - Start the Node.js server
 
 ### Production Commands
@@ -57,8 +63,14 @@ pm2 save
 The server is configured to:
 - Run on HTTPS port 3000
 - Use SSL certificates from Let's Encrypt
-- Proxy DICOM-Web requests to Orthanc server on port 4000
-- Serve the built OHIF viewer application
+- Proxy DICOM-Web requests to Orthanc server on port 4000 with authentication
+- Include proper CORS headers for medical imaging
+- Serve the built OHIF viewer application with custom configuration
+
+### Authentication
+The system is configured to use:
+- **Orthanc Username**: admin
+- **Orthanc Password**: admin123
 
 ### Environment Variables (Optional)
 You can override the default port by setting:
