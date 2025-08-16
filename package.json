@@ -24,7 +24,7 @@
   },
   "scripts": {
     "cm": "npx git-cz",
-    "build": "cross-env APP_CONFIG=config/production.js lerna run build:viewer --stream",
+    "build": "cross-env NODE_ENV=production APP_CONFIG=config/production.js lerna run build:viewer --stream",
     "build:dev": "lerna run build:dev --stream",
     "build:production": "cross-env NODE_ENV=production APP_CONFIG=config/production.js lerna run build:viewer --stream",
     "build:ci": "lerna run build:viewer:ci --stream",

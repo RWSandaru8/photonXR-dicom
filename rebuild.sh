@@ -15,9 +15,23 @@ yarn clean
 
 # Rebuild with production config
 echo "🔨 Building with production configuration..."
+echo "   Using APP_CONFIG=config/production.js"
+echo "   Using NODE_ENV=production"
 export APP_CONFIG=config/production.js
 export NODE_ENV=production
-yarn build:production
+
+# Build using the main package.json script which now has the correct env vars
+yarn run build
+
+# Verify the correct config was used
+echo "🔍 Verifying build configuration..."
+if [ -f "platform/app/dist/app-config.js" ]; then
+    echo "✅ app-config.js exists in build"
+    echo "📋 First few lines of app-config.js:"
+    head -5 platform/app/dist/app-config.js
+else
+    echo "❌ app-config.js NOT found in build!"
+fi
 
 # Restart the server
 echo "🚀 Restarting OHIF server..."

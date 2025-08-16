@@ -44,9 +44,28 @@ yarn install --production=false
 
 # Build the project
 echo "🔨 Building OHIF viewer with production config..."
+echo "   Setting APP_CONFIG=config/production.js"
+echo "   Setting NODE_ENV=production"
 export APP_CONFIG=config/production.js
 export NODE_ENV=production
-yarn build:production
+
+# Use the main build script which now has correct env vars
+yarn run build
+
+# Verify the configuration
+echo "🔍 Verifying build used correct configuration..."
+if [ -f "platform/app/dist/app-config.js" ]; then
+    if grep -q "d14fa38qiwhyfd.cloudfront.net" platform/app/dist/app-config.js; then
+        echo "❌ ERROR: Build still contains CloudFront URLs!"
+        echo "   Check the build configuration."
+        exit 1
+    else
+        echo "✅ Build uses correct configuration (no CloudFront URLs)"
+    fi
+else
+    echo "❌ app-config.js not found in build"
+    exit 1
+fi
 
 # Check SSL certificates
 echo "🔒 Checking SSL certificates..."
