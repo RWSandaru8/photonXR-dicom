@@ -27,25 +27,7 @@
     "EnableWado": true,
     "EnableQido": true,
     "EnableStow": true,
-    "AllowPut": true,
-    "StudiesMetadata": "MainDicomTagsAndInstanceTags",
-    "SeriesMetadata": "MainDicomTagsAndInstanceTags",
-    "Servers" : {
-      "sample" : {
-        "Url" : "https://dentax.globalpearlventures.com:4000/dicom-web",
-        "Username" : "",
-        "Password" : "",
-        "HttpHeaders" : {}
-      }
-    }
-  },
-
-  "Wado" : {
-    "Enable" : true,
-    "Root" : "/wado",
-    "SslEnabled" : true,
-    "SslCertificate" : "",
-    "SslPrivateKey" : ""
+    "AllowPut": true
   },
 
   "HttpServerEnabled" : true,
