@@ -65,9 +65,9 @@ app.get('/api/config', (req, res) => {
         configuration: {
           friendlyName: 'Orthanc DICOM Server',
           name: 'orthanc',
-          wadoUriRoot: `${ORTHANC_URL}/wado`,
-          qidoRoot: `${ORTHANC_URL}/dicom-web`,
-          wadoRoot: `${ORTHANC_URL}/dicom-web`,
+          wadoUriRoot: 'https://dentax.globalpearlventures.com:4000/wado',
+          qidoRoot: 'https://dentax.globalpearlventures.com:4000/dicom-web',
+          wadoRoot: 'https://dentax.globalpearlventures.com:4000/dicom-web',
           qidoSupportsIncludeField: false,
           imageRendering: 'wadors',
           thumbnailRendering: 'wadors',
