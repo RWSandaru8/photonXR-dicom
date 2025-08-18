@@ -126,16 +126,19 @@ app.get('/api/config', (req, res) => {
           qidoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
           wadoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
           qidoSupportsIncludeField: false,
-          imageRendering: 'wadouri', // Use WADO-URI for better compatibility
+          imageRendering: 'wadouri', // Use WADO-URI for better compatibility with Orthanc
           thumbnailRendering: 'wadouri',
           enableStudyLazyLoad: true,
           supportsFuzzyMatching: false,
-          supportsWildcard: true,
+          supportsWildcard: false, // Disable wildcard support for Orthanc
           acceptHeader: 'application/dicom+json',
-          supportsInstanceMetadata: true, // Enable instance metadata
+          supportsInstanceMetadata: false, // Disable instance metadata due to Orthanc limitations
           staticWado: false,
-          // Add Orthanc-specific configurations
+          // Orthanc-specific configurations
           omitQuotationForMultipartRequest: true,
+          bulkDataURI: {
+            enabled: false, // Disable bulk data URI for Orthanc
+          },
           requestOptions: {
             mode: 'cors',
             credentials: 'omit',
@@ -187,10 +190,13 @@ window.config = {
       thumbnailRendering: 'wadouri',
       enableStudyLazyLoad: true,
       supportsFuzzyMatching: false,
-      supportsWildcard: true,
-      supportsInstanceMetadata: true,
+      supportsWildcard: false,
+      supportsInstanceMetadata: false,
       staticWado: false,
       omitQuotationForMultipartRequest: true,
+      bulkDataURI: {
+        enabled: false,
+      },
       requestOptions: {
         mode: 'cors',
         credentials: 'omit',
@@ -330,6 +336,120 @@ app.get('/api/debug-study/:studyUID', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: 'Debug failed',
+      message: error.message,
+    });
+  }
+});
+
+// Enhanced debug endpoint for Orthanc limitations
+app.get('/api/debug-orthanc-study/:studyUID', async (req, res) => {
+  const { studyUID } = req.params;
+
+  try {
+    console.log(`Enhanced debugging for study: ${studyUID}`);
+
+    // Get study info from Orthanc API (not DICOM-Web)
+    const orthancStudiesResponse = await fetch(`${ORTHANC_URL}/studies`, {
+      headers: { Accept: 'application/json' },
+    });
+    const orthancStudies = await orthancStudiesResponse.json();
+    
+    // Find the study by UID
+    let orthancStudyId = null;
+    for (const studyId of orthancStudies) {
+      const studyResponse = await fetch(`${ORTHANC_URL}/studies/${studyId}`, {
+        headers: { Accept: 'application/json' },
+      });
+      const study = await studyResponse.json();
+      if (study.MainDicomTags.StudyInstanceUID === studyUID) {
+        orthancStudyId = studyId;
+        break;
+      }
+    }
+
+    if (!orthancStudyId) {
+      return res.json({ error: 'Study not found in Orthanc' });
+    }
+
+    // Get complete study info
+    const studyResponse = await fetch(`${ORTHANC_URL}/studies/${orthancStudyId}`, {
+      headers: { Accept: 'application/json' },
+    });
+    const studyInfo = await studyResponse.json();
+
+    // Get series info
+    const seriesInfo = [];
+    for (const seriesId of studyInfo.Series) {
+      const seriesResponse = await fetch(`${ORTHANC_URL}/series/${seriesId}`, {
+        headers: { Accept: 'application/json' },
+      });
+      const series = await seriesResponse.json();
+      
+      // Get instances for this series
+      const instances = [];
+      for (const instanceId of series.Instances) {
+        const instanceResponse = await fetch(`${ORTHANC_URL}/instances/${instanceId}`, {
+          headers: { Accept: 'application/json' },
+        });
+        const instance = await instanceResponse.json();
+        instances.push({
+          orthancId: instanceId,
+          sopInstanceUID: instance.MainDicomTags.SOPInstanceUID,
+          instanceNumber: instance.MainDicomTags.InstanceNumber,
+        });
+      }
+      
+      seriesInfo.push({
+        orthancId: seriesId,
+        seriesInstanceUID: series.MainDicomTags.SeriesInstanceUID,
+        seriesNumber: series.MainDicomTags.SeriesNumber,
+        modality: series.MainDicomTags.Modality,
+        instances: instances,
+      });
+    }
+
+    // Test WADO-URI URLs
+    const wadoTests = [];
+    if (seriesInfo.length > 0 && seriesInfo[0].instances.length > 0) {
+      const firstSeries = seriesInfo[0];
+      const firstInstance = firstSeries.instances[0];
+      
+      const wadoUrl = `${ORTHANC_URL}/wado?requestType=WADO&studyUID=${studyUID}&seriesUID=${firstSeries.seriesInstanceUID}&objectUID=${firstInstance.sopInstanceUID}&contentType=application/dicom`;
+      
+      try {
+        const wadoResponse = await fetch(wadoUrl, {
+          headers: { Accept: 'application/dicom' },
+        });
+        wadoTests.push({
+          url: wadoUrl,
+          status: wadoResponse.status,
+          contentType: wadoResponse.headers.get('content-type'),
+          size: wadoResponse.headers.get('content-length'),
+        });
+      } catch (error) {
+        wadoTests.push({
+          url: wadoUrl,
+          error: error.message,
+        });
+      }
+    }
+
+    res.json({
+      orthancStudyId,
+      studyInfo: {
+        patientName: studyInfo.PatientMainDicomTags.PatientName,
+        patientId: studyInfo.PatientMainDicomTags.PatientID,
+        studyDate: studyInfo.MainDicomTags.StudyDate,
+        studyDescription: studyInfo.MainDicomTags.StudyDescription,
+      },
+      seriesCount: seriesInfo.length,
+      series: seriesInfo,
+      wadoTests,
+      ohifUrl: `/viewer/dicomweb?StudyInstanceUIDs=${studyUID}`,
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Enhanced debug failed',
       message: error.message,
     });
   }

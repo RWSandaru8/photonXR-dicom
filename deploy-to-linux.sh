@@ -19,10 +19,6 @@ yarn install --frozen-lockfile
 echo "🔨 Building OHIF viewer..."
 yarn build
 
-# Copy server.js to the deployment location
-echo "📋 Copying server.js..."
-cp server.js /var/www/ohif/
-
 # Start the server with PM2
 echo "🚀 Starting OHIF server with PM2..."
 pm2 start server.js --name ohif-viewer --log-file /var/log/ohif-viewer.log
@@ -40,6 +36,14 @@ curl -k -s https://dentax.globalpearlventures.com:3000/api/health | jq . || echo
 
 echo "Testing Orthanc connectivity..."
 curl -k -s https://dentax.globalpearlventures.com:3000/api/test-orthanc | jq . || echo "Orthanc test failed"
+
+echo "Testing enhanced debug endpoint..."
+# Get first study UID for testing
+STUDY_UID=$(curl -k -s https://dentax.globalpearlventures.com:4000/studies | jq -r '.[0]' | xargs -I {} curl -k -s https://dentax.globalpearlventures.com:4000/studies/{} | jq -r '.MainDicomTags.StudyInstanceUID')
+if [ "$STUDY_UID" != "null" ] && [ -n "$STUDY_UID" ]; then
+    echo "Testing with study UID: $STUDY_UID"
+    curl -k -s "https://dentax.globalpearlventures.com:3000/api/debug-orthanc-study/$STUDY_UID" | jq .ohifUrl || echo "Enhanced debug test failed"
+fi
 
 echo "✅ Deployment completed!"
 echo "🌐 OHIF Viewer: https://dentax.globalpearlventures.com:3000"
