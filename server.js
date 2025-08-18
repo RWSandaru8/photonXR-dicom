@@ -33,7 +33,7 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 const orthancProxy = createProxyMiddleware({
   target: ORTHANC_URL,
   changeOrigin: true,
-  secure: true, // Set to false if Orthanc uses self-signed certificates
+  secure: false, // Set to false if Orthanc uses self-signed certificates
   logLevel: 'debug',
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxying ${req.method} ${req.url} to ${ORTHANC_URL}${req.url}`);
