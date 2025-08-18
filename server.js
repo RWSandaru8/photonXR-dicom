@@ -37,20 +37,33 @@ const orthancProxy = createProxyMiddleware({
   logLevel: 'debug',
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxying ${req.method} ${req.url} to ${ORTHANC_URL}${req.url}`);
-    // Add required headers for DICOM-Web
-    proxyReq.setHeader('Accept', 'application/dicom+json');
+    
+    // Set appropriate headers based on endpoint
+    if (req.url.includes('/dicom-web/')) {
+      proxyReq.setHeader('Accept', 'application/dicom+json');
+    } else if (req.url.includes('/wado')) {
+      proxyReq.setHeader('Accept', 'application/dicom');
+    } else {
+      proxyReq.setHeader('Accept', 'application/json');
+    }
+    
     proxyReq.setHeader('User-Agent', 'OHIF-Viewer/3.0');
+    
+    // Remove problematic headers that might cause issues
+    proxyReq.removeHeader('accept-encoding');
   },
   onProxyRes: (proxyRes, req, res) => {
     console.log(`Proxy response: ${proxyRes.statusCode} for ${req.url}`);
     if (proxyRes.statusCode >= 400) {
       console.error(`Proxy error ${proxyRes.statusCode} for ${req.url}`);
+      console.error(`Response headers:`, proxyRes.headers);
     }
     // Add CORS headers to proxy responses
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
     proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
     proxyRes.headers['Access-Control-Allow-Headers'] =
       'Content-Type, Authorization, X-Requested-With, Accept';
+    proxyRes.headers['Access-Control-Expose-Headers'] = 'Content-Length,Content-Range,Content-Type';
   },
   onError: (err, req, res) => {
     console.error(`Proxy error for ${req.url}:`, err);
