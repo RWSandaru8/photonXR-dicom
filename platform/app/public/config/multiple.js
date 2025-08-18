@@ -51,11 +51,6 @@ window.config = {
       configuration: {
         friendlyName: 'dcmjs DICOMWeb Server',
         name: 'aws',
-        // old server
-        // wadoUriRoot: 'https://server.dcmjs.org/dcm4chee-arc/aets/DCM4CHEE/wado',
-        // qidoRoot: 'https://server.dcmjs.org/dcm4chee-arc/aets/DCM4CHEE/rs',
-        // wadoRoot: 'https://server.dcmjs.org/dcm4chee-arc/aets/DCM4CHEE/rs',
-        // new server
         wadoUriRoot: 'https://dentax.globalpearlventures.com:3000/wado',
         qidoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
         wadoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
