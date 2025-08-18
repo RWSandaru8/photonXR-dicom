@@ -39,8 +39,13 @@ const orthancProxy = createProxyMiddleware({
     console.log(`Proxying ${req.method} ${req.url} to ${ORTHANC_URL}${req.url}`);
     // Add required headers for DICOM-Web
     proxyReq.setHeader('Accept', 'application/dicom+json');
+    proxyReq.setHeader('User-Agent', 'OHIF-Viewer/3.0');
   },
-  onProxyRes: proxyRes => {
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`Proxy response: ${proxyRes.statusCode} for ${req.url}`);
+    if (proxyRes.statusCode >= 400) {
+      console.error(`Proxy error ${proxyRes.statusCode} for ${req.url}`);
+    }
     // Add CORS headers to proxy responses
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
     proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
@@ -48,7 +53,7 @@ const orthancProxy = createProxyMiddleware({
       'Content-Type, Authorization, X-Requested-With, Accept';
   },
   onError: (err, req, res) => {
-    console.error('Proxy error:', err);
+    console.error(`Proxy error for ${req.url}:`, err);
     res.status(500).json({ error: 'Proxy error', message: err.message });
   },
 });
@@ -259,6 +264,59 @@ app.get('/api/debug-study/:studyUID', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: 'Debug failed',
+      message: error.message,
+    });
+  }
+});
+
+// Test study endpoint that OHIF is trying to access
+app.get('/api/test-study-endpoint/:studyUID', async (req, res) => {
+  const { studyUID } = req.params;
+  
+  console.log(`Testing study endpoint for: ${studyUID}`);
+  
+  try {
+    // Test the exact endpoints that OHIF is calling
+    const endpoints = [
+      `/dicom-web/studies?StudyInstanceUID=${studyUID}`,
+      `/dicom-web/studies/${studyUID}`,
+      `/dicom-web/studies/${studyUID}/metadata`,
+      `/dicom-web/studies/${studyUID}/series`,
+    ];
+    
+    const results = {};
+    
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Testing endpoint: ${ORTHANC_URL}${endpoint}`);
+        const response = await fetch(`${ORTHANC_URL}${endpoint}`, {
+          headers: { 
+            'Accept': 'application/dicom+json',
+            'User-Agent': 'OHIF-Viewer/3.0'
+          },
+        });
+        
+        results[endpoint] = {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          data: response.ok ? await response.json() : await response.text(),
+        };
+      } catch (error) {
+        results[endpoint] = {
+          error: error.message,
+        };
+      }
+    }
+    
+    res.json({
+      studyUID,
+      orthancUrl: ORTHANC_URL,
+      endpoints: results,
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Test failed',
       message: error.message,
     });
   }
