@@ -81,17 +81,17 @@ app.get('/api/config', (req, res) => {
           qidoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
           wadoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
           qidoSupportsIncludeField: false,
-          imageRendering: 'wadors',
-          thumbnailRendering: 'wadors',
+          imageRendering: 'wadouri', // Fallback to WADO-URI if WADO-RS fails
+          thumbnailRendering: 'wadouri', // Fallback to WADO-URI if WADO-RS fails
           enableStudyLazyLoad: true,
           supportsFuzzyMatching: false,
           supportsWildcard: true,
           acceptHeader: 'application/dicom+json',
+          supportsInstanceMetadata: false, // Disable instance metadata if causing issues
         },
       },
     ],
     defaultDataSourceName: 'orthanc',
-    // Remove problematic configurations that might cause black screen
     maxNumberOfWebWorkers: 3,
     omitQuotationForMultipartRequest: true,
   };
@@ -165,22 +165,33 @@ app.get('/api/debug-study/:studyUID', async (req, res) => {
     // Get instances for first series
     const seriesData = await seriesResponse.json();
     let instancesData = [];
+    let instancesError = null;
 
     if (seriesData.length > 0) {
       const firstSeriesUID = seriesData[0]['0020000E'].Value[0];
-      const instancesResponse = await fetch(
-        `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series/${firstSeriesUID}/instances`,
-        {
-          headers: { Accept: 'application/dicom+json' },
+      try {
+        const instancesResponse = await fetch(
+          `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series/${firstSeriesUID}/instances`,
+          {
+            headers: { Accept: 'application/dicom+json' },
+          }
+        );
+        
+        if (instancesResponse.ok) {
+          instancesData = await instancesResponse.json();
+        } else {
+          instancesError = await instancesResponse.json();
         }
-      );
-      instancesData = await instancesResponse.json();
+      } catch (error) {
+        instancesError = { error: error.message };
+      }
     }
 
     res.json({
       study: await studyResponse.json(),
       series: seriesData,
-      instances: instancesData,
+      instances: instancesError || instancesData,
+      instancesError: instancesError ? true : false,
       ohifUrl: `/viewer/dicomweb?StudyInstanceUIDs=${studyUID}`,
       config: {
         qidoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
@@ -190,6 +201,36 @@ app.get('/api/debug-study/:studyUID', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: 'Debug failed',
+      message: error.message,
+    });
+  }
+});
+
+// Orthanc system info endpoint
+app.get('/api/orthanc-info', async (req, res) => {
+  try {
+    const systemResponse = await fetch(`${ORTHANC_URL}/system`);
+    const studiesResponse = await fetch(`${ORTHANC_URL}/studies`);
+    
+    const system = await systemResponse.json();
+    const studies = await studiesResponse.json();
+    
+    // Get detailed info for first study if available
+    let studyDetails = null;
+    if (studies.length > 0) {
+      const firstStudyResponse = await fetch(`${ORTHANC_URL}/studies/${studies[0]}`);
+      studyDetails = await firstStudyResponse.json();
+    }
+    
+    res.json({
+      system,
+      totalStudies: studies.length,
+      studyIds: studies,
+      firstStudyDetails: studyDetails,
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to get Orthanc info',
       message: error.message,
     });
   }

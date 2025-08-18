@@ -86,3 +86,30 @@ echo ""
 echo "9. OHIF debug endpoint for study..."
 DEBUG_RESPONSE=$(curl -k -s "$SERVER_URL/api/debug-study/$STUDY_UID")
 echo "Debug response: $DEBUG_RESPONSE"
+
+echo ""
+
+# Test 10: Check Orthanc instances directly
+echo "10. Checking Orthanc instances directly..."
+SERIES_UID="1.3.12.2.1107.5.4.3.123456789012345.19950922.121803.8"
+echo "Trying Orthanc instances endpoint..."
+ORTHANC_INSTANCES=$(curl -k -s "$ORTHANC_URL/dicom-web/studies/$STUDY_UID/series/$SERIES_UID/instances")
+echo "Orthanc instances response: $ORTHANC_INSTANCES"
+
+echo ""
+
+# Test 11: Check Orthanc REST API for instances
+echo "11. Checking Orthanc REST API..."
+ORTHANC_REST_STUDIES=$(curl -k -s "$ORTHANC_URL/studies")
+echo "Orthanc REST studies: $ORTHANC_REST_STUDIES"
+
+if [[ "$ORTHANC_REST_STUDIES" != "[]" ]]; then
+    # Get the first study ID
+    STUDY_ID=$(echo "$ORTHANC_REST_STUDIES" | grep -o '"[^"]*"' | head -1 | tr -d '"')
+    echo "First study ID: $STUDY_ID"
+    
+    if [ -n "$STUDY_ID" ]; then
+        STUDY_INFO=$(curl -k -s "$ORTHANC_URL/studies/$STUDY_ID")
+        echo "Study info: $STUDY_INFO"
+    fi
+fi
