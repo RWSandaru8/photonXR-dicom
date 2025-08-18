@@ -95,7 +95,7 @@ If issues persist, check:
 # Orthanc container logs
 sudo docker-compose logs orthanc
 
-# Nginx container logs  
+# Nginx container logs
 sudo docker-compose logs nginx
 
 # OHIF server logs
