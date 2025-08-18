@@ -107,7 +107,7 @@ if [[ "$ORTHANC_REST_STUDIES" != "[]" ]]; then
     # Get the first study ID
     STUDY_ID=$(echo "$ORTHANC_REST_STUDIES" | grep -o '"[^"]*"' | head -1 | tr -d '"')
     echo "First study ID: $STUDY_ID"
-    
+
     if [ -n "$STUDY_ID" ]; then
         STUDY_INFO=$(curl -k -s "$ORTHANC_URL/studies/$STUDY_ID")
         echo "Study info: $STUDY_INFO"

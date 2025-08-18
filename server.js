@@ -70,10 +70,10 @@ app.get('/api/config', (req, res) => {
   res.set({
     'Content-Type': 'application/json',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0'
+    Pragma: 'no-cache',
+    Expires: '0',
   });
-  
+
   const config = {
     routerBasename: '/',
     modes: ['@ohif/mode-longitudinal'],
@@ -112,12 +112,17 @@ app.get('/config', (req, res) => {
   res.redirect('/api/config');
 });
 
+// Override any config file requests to use our custom config
+app.get('/config/:configName', (req, res) => {
+  res.redirect('/api/config');
+});
+
 app.get('/app-config.js', (req, res) => {
   res.set({
     'Content-Type': 'application/javascript',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
   });
-  
+
   const configJS = `
 window.config = {
   routerBasename: '/',
@@ -126,6 +131,7 @@ window.config = {
   showStudyBrowser: false,
   dataSources: [{
     namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
+    sourceName: 'dicomweb',
     configuration: {
       friendlyName: 'Orthanc DICOM Server',
       name: 'orthanc',
@@ -138,16 +144,19 @@ window.config = {
       enableStudyLazyLoad: true,
       supportsFuzzyMatching: false,
       supportsWildcard: true,
-      acceptHeader: 'application/dicom+json',
       supportsInstanceMetadata: false,
+      staticWado: false,
     },
   }],
-  defaultDataSourceName: 'orthanc',
+  defaultDataSourceName: 'dicomweb',
   maxNumberOfWebWorkers: 3,
   omitQuotationForMultipartRequest: true,
+  httpErrorHandler: error => {
+    console.error('HTTP Error:', error);
+  },
 };
 `;
-  
+
   res.send(configJS);
 });
 
@@ -207,12 +216,9 @@ app.get('/api/debug-study/:studyUID', async (req, res) => {
     );
 
     // Get series metadata
-    const seriesResponse = await fetch(
-      `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series`,
-      {
-        headers: { Accept: 'application/dicom+json' },
-      }
-    );
+    const seriesResponse = await fetch(`${ORTHANC_URL}/dicom-web/studies/${studyUID}/series`, {
+      headers: { Accept: 'application/dicom+json' },
+    });
 
     // Get instances for first series
     const seriesData = await seriesResponse.json();
@@ -228,7 +234,7 @@ app.get('/api/debug-study/:studyUID', async (req, res) => {
             headers: { Accept: 'application/dicom+json' },
           }
         );
-        
+
         if (instancesResponse.ok) {
           instancesData = await instancesResponse.json();
         } else {
@@ -263,17 +269,17 @@ app.get('/api/orthanc-info', async (req, res) => {
   try {
     const systemResponse = await fetch(`${ORTHANC_URL}/system`);
     const studiesResponse = await fetch(`${ORTHANC_URL}/studies`);
-    
+
     const system = await systemResponse.json();
     const studies = await studiesResponse.json();
-    
+
     // Get detailed info for first study if available
     let studyDetails = null;
     if (studies.length > 0) {
       const firstStudyResponse = await fetch(`${ORTHANC_URL}/studies/${studies[0]}`);
       studyDetails = await firstStudyResponse.json();
     }
-    
+
     res.json({
       system,
       totalStudies: studies.length,
