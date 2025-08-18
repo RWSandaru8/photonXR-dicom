@@ -58,6 +58,39 @@ const orthancProxy = createProxyMiddleware({
   },
 });
 
+// WADO-URI proxy with Orthanc-specific parameter transformation
+app.get('/wado', (req, res) => {
+  // Orthanc WADO-URI endpoint is at /wado with specific parameters
+  // Transform OHIF WADO-URI requests to Orthanc format
+  const orthancWadoUrl = `${ORTHANC_URL}/wado?${req.url.split('?')[1] || ''}`;
+  
+  console.log(`WADO-URI request: ${req.url}`);
+  console.log(`Proxying to: ${orthancWadoUrl}`);
+  
+  fetch(orthancWadoUrl, {
+    method: req.method,
+    headers: {
+      Accept: req.headers.accept || 'application/dicom',
+      'User-Agent': 'OHIF-Viewer/3.0',
+    },
+  })
+    .then(response => {
+      // Set response headers
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Content-Type', response.headers.get('content-type') || 'application/dicom');
+      res.status(response.status);
+      
+      return response.arrayBuffer();
+    })
+    .then(buffer => {
+      res.send(Buffer.from(buffer));
+    })
+    .catch(error => {
+      console.error('WADO-URI proxy error:', error);
+      res.status(500).json({ error: 'WADO-URI proxy error', message: error.message });
+    });
+});
+
 // Proxy all Orthanc API requests
 app.use('/dicom-web', orthancProxy);
 app.use('/orthanc', orthancProxy);
@@ -67,7 +100,6 @@ app.use('/instances', orthancProxy);
 app.use('/patients', orthancProxy);
 app.use('/modalities', orthancProxy);
 app.use('/peers', orthancProxy);
-app.use('/wado', orthancProxy); // Add WADO proxy
 
 // API endpoint for OHIF configuration
 app.get('/api/config', (req, res) => {
@@ -94,13 +126,20 @@ app.get('/api/config', (req, res) => {
           qidoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
           wadoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
           qidoSupportsIncludeField: false,
-          imageRendering: 'wadouri', // Fallback to WADO-URI if WADO-RS fails
-          thumbnailRendering: 'wadouri', // Fallback to WADO-URI if WADO-RS fails
+          imageRendering: 'wadouri', // Use WADO-URI for better compatibility
+          thumbnailRendering: 'wadouri',
           enableStudyLazyLoad: true,
           supportsFuzzyMatching: false,
           supportsWildcard: true,
           acceptHeader: 'application/dicom+json',
-          supportsInstanceMetadata: false, // Disable instance metadata if causing issues
+          supportsInstanceMetadata: true, // Enable instance metadata
+          staticWado: false,
+          // Add Orthanc-specific configurations
+          omitQuotationForMultipartRequest: true,
+          requestOptions: {
+            mode: 'cors',
+            credentials: 'omit',
+          },
         },
       },
     ],
@@ -149,8 +188,13 @@ window.config = {
       enableStudyLazyLoad: true,
       supportsFuzzyMatching: false,
       supportsWildcard: true,
-      supportsInstanceMetadata: false,
+      supportsInstanceMetadata: true,
       staticWado: false,
+      omitQuotationForMultipartRequest: true,
+      requestOptions: {
+        mode: 'cors',
+        credentials: 'omit',
+      },
     },
   }],
   defaultDataSourceName: 'dicomweb',
@@ -178,24 +222,46 @@ app.get('/api/health', (req, res) => {
 // Test endpoint to check Orthanc connectivity
 app.get('/api/test-orthanc', async (req, res) => {
   try {
-    const response = await fetch(`${ORTHANC_URL}/dicom-web/studies`, {
+    // Test basic Orthanc connectivity first
+    const systemResponse = await fetch(`${ORTHANC_URL}/system`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    if (!systemResponse.ok) {
+      return res.status(systemResponse.status).json({
+        status: 'error',
+        message: `Orthanc system endpoint returned ${systemResponse.status}`,
+      });
+    }
+
+    // Test DICOM-Web endpoint
+    const dicomWebResponse = await fetch(`${ORTHANC_URL}/dicom-web/studies`, {
       method: 'GET',
       headers: {
         Accept: 'application/dicom+json',
       },
     });
 
-    if (response.ok) {
-      const data = await response.json();
+    if (dicomWebResponse.ok) {
+      const data = await dicomWebResponse.json();
+      const systemData = await systemResponse.json();
       res.json({
         status: 'success',
         message: 'Orthanc connectivity test passed',
         studyCount: data.length,
+        orthancSystem: systemData,
+        dicomWebEnabled: true,
       });
     } else {
-      res.status(response.status).json({
+      const errorText = await dicomWebResponse.text();
+      res.status(dicomWebResponse.status).json({
         status: 'error',
-        message: `Orthanc returned ${response.status}`,
+        message: `DICOM-Web endpoint returned ${dicomWebResponse.status}`,
+        error: errorText,
+        orthancSystem: await systemResponse.json(),
       });
     }
   } catch (error) {
@@ -272,9 +338,9 @@ app.get('/api/debug-study/:studyUID', async (req, res) => {
 // Test study endpoint that OHIF is trying to access
 app.get('/api/test-study-endpoint/:studyUID', async (req, res) => {
   const { studyUID } = req.params;
-  
+
   console.log(`Testing study endpoint for: ${studyUID}`);
-  
+
   try {
     // Test the exact endpoints that OHIF is calling
     const endpoints = [
@@ -283,19 +349,19 @@ app.get('/api/test-study-endpoint/:studyUID', async (req, res) => {
       `/dicom-web/studies/${studyUID}/metadata`,
       `/dicom-web/studies/${studyUID}/series`,
     ];
-    
+
     const results = {};
-    
+
     for (const endpoint of endpoints) {
       try {
         console.log(`Testing endpoint: ${ORTHANC_URL}${endpoint}`);
         const response = await fetch(`${ORTHANC_URL}${endpoint}`, {
-          headers: { 
-            'Accept': 'application/dicom+json',
-            'User-Agent': 'OHIF-Viewer/3.0'
+          headers: {
+            Accept: 'application/dicom+json',
+            'User-Agent': 'OHIF-Viewer/3.0',
           },
         });
-        
+
         results[endpoint] = {
           status: response.status,
           statusText: response.statusText,
@@ -308,7 +374,7 @@ app.get('/api/test-study-endpoint/:studyUID', async (req, res) => {
         };
       }
     }
-    
+
     res.json({
       studyUID,
       orthancUrl: ORTHANC_URL,
