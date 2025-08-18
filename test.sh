@@ -53,14 +53,25 @@ fi
 
 echo ""
 
-# Test 4: DICOM-Web Endpoint
-echo "🔍 Testing DICOM-Web endpoint..."
-if curl -k -s "$ORTHANC_URL/dicom-web/studies" > /dev/null; then
-    echo -e "${GREEN}✅ DICOM-Web endpoint accessible${NC}"
-    STUDY_COUNT=$(curl -k -s "$ORTHANC_URL/dicom-web/studies" | jq '. | length')
-    echo "Studies available: $STUDY_COUNT"
+# Test 4: DICOM-Web Endpoint (through proxy)
+echo "🔍 Testing DICOM-Web endpoint through proxy..."
+if curl -k -s "$SERVER_URL/dicom-web/studies" > /dev/null; then
+    echo -e "${GREEN}✅ DICOM-Web proxy endpoint accessible${NC}"
+    STUDY_COUNT=$(curl -k -s "$SERVER_URL/dicom-web/studies" | jq '. | length')
+    echo "Studies available through proxy: $STUDY_COUNT"
 else
-    echo -e "${RED}❌ DICOM-Web endpoint failed${NC}"
+    echo -e "${RED}❌ DICOM-Web proxy endpoint failed${NC}"
+fi
+
+echo ""
+
+# Test 5: Orthanc Test Endpoint
+echo "🔍 Testing Orthanc connectivity test endpoint..."
+if curl -k -s "$SERVER_URL/api/test-orthanc" > /dev/null; then
+    echo -e "${GREEN}✅ Orthanc test endpoint accessible${NC}"
+    curl -k -s "$SERVER_URL/api/test-orthanc" | jq '.'
+else
+    echo -e "${RED}❌ Orthanc test endpoint failed${NC}"
 fi
 
 echo ""

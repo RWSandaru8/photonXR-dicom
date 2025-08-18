@@ -37,6 +37,15 @@ const orthancProxy = createProxyMiddleware({
   logLevel: 'debug',
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxying ${req.method} ${req.url} to ${ORTHANC_URL}${req.url}`);
+    // Add required headers for DICOM-Web
+    proxyReq.setHeader('Accept', 'application/dicom+json');
+  },
+  onProxyRes: proxyRes => {
+    // Add CORS headers to proxy responses
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] =
+      'Content-Type, Authorization, X-Requested-With, Accept';
   },
   onError: (err, req, res) => {
     console.error('Proxy error:', err);
@@ -63,7 +72,7 @@ app.get('/api/config', (req, res) => {
     dataSources: [
       {
         // FIXED: Correct namespace name
-        namespace: '@ohif/extension-default.datasourceModule.dicomweb',
+        namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
         configuration: {
           friendlyName: 'Orthanc DICOM Server',
           name: 'orthanc',
@@ -172,7 +181,7 @@ app.get('*', (req, res) => {
 });
 
 // Error handling middleware
-app.use((error, req, res, next) => {
+app.use((error, req, res) => {
   console.error('Server error:', error);
   res.status(500).json({
     error: 'Internal Server Error',
