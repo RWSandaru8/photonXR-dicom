@@ -65,7 +65,7 @@ app.get('/api/config', (req, res) => {
         configuration: {
           friendlyName: 'Orthanc DICOM Server',
           name: 'orthanc',
-          wadoUriRoot: '/dicom-web/wado',
+          wadoUriRoot: '/wado',
           qidoRoot: '/dicom-web',
           wadoRoot: '/dicom-web',
           qidoSupportsIncludeField: false,
