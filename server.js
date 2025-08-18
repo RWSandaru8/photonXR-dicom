@@ -66,6 +66,14 @@ app.use('/wado', orthancProxy); // Add WADO proxy
 
 // API endpoint for OHIF configuration
 app.get('/api/config', (req, res) => {
+  // Set proper headers to ensure this config is used
+  res.set({
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  
   const config = {
     routerBasename: '/',
     modes: ['@ohif/mode-longitudinal'],
@@ -97,6 +105,50 @@ app.get('/api/config', (req, res) => {
   };
 
   res.json(config);
+});
+
+// Alternative config endpoints that OHIF might look for
+app.get('/config', (req, res) => {
+  res.redirect('/api/config');
+});
+
+app.get('/app-config.js', (req, res) => {
+  res.set({
+    'Content-Type': 'application/javascript',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+  });
+  
+  const configJS = `
+window.config = {
+  routerBasename: '/',
+  modes: ['@ohif/mode-longitudinal'],
+  extensions: [],
+  showStudyBrowser: false,
+  dataSources: [{
+    namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
+    configuration: {
+      friendlyName: 'Orthanc DICOM Server',
+      name: 'orthanc',
+      wadoUriRoot: 'https://dentax.globalpearlventures.com:3000/wado',
+      qidoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
+      wadoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
+      qidoSupportsIncludeField: false,
+      imageRendering: 'wadouri',
+      thumbnailRendering: 'wadouri',
+      enableStudyLazyLoad: true,
+      supportsFuzzyMatching: false,
+      supportsWildcard: true,
+      acceptHeader: 'application/dicom+json',
+      supportsInstanceMetadata: false,
+    },
+  }],
+  defaultDataSourceName: 'orthanc',
+  maxNumberOfWebWorkers: 3,
+  omitQuotationForMultipartRequest: true,
+};
+`;
+  
+  res.send(configJS);
 });
 
 // Health check endpoint
