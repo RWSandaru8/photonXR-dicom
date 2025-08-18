@@ -180,9 +180,9 @@ window.config = {
       configuration: {
         friendlyName: 'AWS S3 Static wado server',
         name: 'aws',
-        wadoUriRoot: 'https://d14fa38qiwhyfd.cloudfront.net/dicomweb',
-        qidoRoot: 'https://d14fa38qiwhyfd.cloudfront.net/dicomweb',
-        wadoRoot: 'https://d14fa38qiwhyfd.cloudfront.net/dicomweb',
+        wadoUriRoot: 'https://dentax.globalpearlventures.com:3000/wado',
+        qidoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
+        wadoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
         qidoSupportsIncludeField: false,
         imageRendering: 'wadors',
         thumbnailRendering: 'wadors',
