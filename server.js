@@ -29,15 +29,37 @@ app.use(
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
-// Proxy middleware for Orthanc API calls
+// Proxy middleware for Orthanc API calls with query parameter filtering
 const orthancProxy = createProxyMiddleware({
   target: ORTHANC_URL,
   changeOrigin: true,
-  secure: false, // Set to false if Orthanc uses self-signed certificates
+  secure: false,
   logLevel: 'debug',
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxying ${req.method} ${req.url} to ${ORTHANC_URL}${req.url}`);
-    
+
+    // Filter out problematic query parameters for Orthanc
+    if (req.url.includes('?')) {
+      const [path, queryString] = req.url.split('?');
+      const params = new URLSearchParams(queryString);
+
+      // Remove parameters that Orthanc doesn't support
+      params.delete('limit');
+      params.delete('offset');
+      params.delete('fuzzymatching');
+      params.delete('includefield');
+
+      // Rebuild the URL without problematic parameters
+      const cleanQuery = params.toString();
+      const cleanUrl = cleanQuery ? `${path}?${cleanQuery}` : path;
+
+      console.log(`Original URL: ${req.url}`);
+      console.log(`Cleaned URL: ${cleanUrl}`);
+
+      // Update the proxy request path
+      proxyReq.path = cleanUrl;
+    }
+
     // Set appropriate headers based on endpoint
     if (req.url.includes('/dicom-web/')) {
       proxyReq.setHeader('Accept', 'application/dicom+json');
@@ -46,10 +68,8 @@ const orthancProxy = createProxyMiddleware({
     } else {
       proxyReq.setHeader('Accept', 'application/json');
     }
-    
+
     proxyReq.setHeader('User-Agent', 'OHIF-Viewer/3.0');
-    
-    // Remove problematic headers that might cause issues
     proxyReq.removeHeader('accept-encoding');
   },
   onProxyRes: (proxyRes, req, res) => {
@@ -71,15 +91,88 @@ const orthancProxy = createProxyMiddleware({
   },
 });
 
+// Handle problematic metadata endpoints that Orthanc doesn't support well
+app.get('/dicom-web/studies/:studyUID/series/:seriesUID/metadata', async (req, res) => {
+  const { studyUID, seriesUID } = req.params;
+
+  console.log(`Metadata request for study: ${studyUID}, series: ${seriesUID}`);
+
+  try {
+    // Instead of using the problematic metadata endpoint, get instances and their metadata
+    const instancesResponse = await fetch(
+      `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series/${seriesUID}/instances`,
+      {
+        headers: { Accept: 'application/dicom+json' },
+      }
+    );
+
+    if (instancesResponse.ok) {
+      const instances = await instancesResponse.json();
+      console.log(`Found ${instances.length} instances for series ${seriesUID}`);
+
+      // Return the instances data which contains the metadata OHIF needs
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Content-Type', 'application/dicom+json');
+      res.json(instances);
+    } else {
+      console.error(`Instances request failed: ${instancesResponse.status}`);
+      // Fallback: return empty array instead of error
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Content-Type', 'application/dicom+json');
+      res.json([]);
+    }
+  } catch (error) {
+    console.error('Metadata endpoint error:', error);
+    // Return empty array instead of error to prevent OHIF from breaking
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Content-Type', 'application/dicom+json');
+    res.json([]);
+  }
+});
+
+// Handle study-level metadata requests
+app.get('/dicom-web/studies/:studyUID/metadata', async (req, res) => {
+  const { studyUID } = req.params;
+
+  console.log(`Study metadata request for: ${studyUID}`);
+
+  try {
+    // Get all series for the study
+    const seriesResponse = await fetch(`${ORTHANC_URL}/dicom-web/studies/${studyUID}/series`, {
+      headers: { Accept: 'application/dicom+json' },
+    });
+
+    if (seriesResponse.ok) {
+      const series = await seriesResponse.json();
+      console.log(`Found ${series.length} series for study ${studyUID}`);
+
+      // Return the series data as study metadata
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Content-Type', 'application/dicom+json');
+      res.json(series);
+    } else {
+      console.error(`Series request failed: ${seriesResponse.status}`);
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Content-Type', 'application/dicom+json');
+      res.json([]);
+    }
+  } catch (error) {
+    console.error('Study metadata endpoint error:', error);
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Content-Type', 'application/dicom+json');
+    res.json([]);
+  }
+});
+
 // WADO-URI proxy with Orthanc-specific parameter transformation
 app.get('/wado', (req, res) => {
   // Orthanc WADO-URI endpoint is at /wado with specific parameters
   // Transform OHIF WADO-URI requests to Orthanc format
   const orthancWadoUrl = `${ORTHANC_URL}/wado?${req.url.split('?')[1] || ''}`;
-  
+
   console.log(`WADO-URI request: ${req.url}`);
   console.log(`Proxying to: ${orthancWadoUrl}`);
-  
+
   fetch(orthancWadoUrl, {
     method: req.method,
     headers: {
@@ -92,7 +185,7 @@ app.get('/wado', (req, res) => {
       res.set('Access-Control-Allow-Origin', '*');
       res.set('Content-Type', response.headers.get('content-type') || 'application/dicom');
       res.status(response.status);
-      
+
       return response.arrayBuffer();
     })
     .then(buffer => {
@@ -138,30 +231,38 @@ app.get('/api/config', (req, res) => {
           wadoUriRoot: 'https://dentax.globalpearlventures.com:3000/wado',
           qidoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
           wadoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
-          qidoSupportsIncludeField: false,
-          imageRendering: 'wadouri', // Use WADO-URI for better compatibility with Orthanc
-          thumbnailRendering: 'wadouri',
-          enableStudyLazyLoad: true,
-          supportsFuzzyMatching: false,
-          supportsWildcard: false, // Disable wildcard support for Orthanc
+          qidoSupportsIncludeField: false, // Disable include field support
+          imageRendering: 'wadouri', // Force WADO-URI for all images
+          thumbnailRendering: 'wadouri', // Force WADO-URI for thumbnails
+          enableStudyLazyLoad: false, // Disable lazy loading to prevent complex queries
+          supportsFuzzyMatching: false, // Disable fuzzy matching
+          supportsWildcard: false, // Disable wildcard queries
           acceptHeader: 'application/dicom+json',
-          supportsInstanceMetadata: false, // Disable instance metadata due to Orthanc limitations
+          supportsInstanceMetadata: false, // Completely disable instance metadata
           staticWado: false,
-          // Orthanc-specific configurations
+          dicomUploadEnabled: false,
+          // Orthanc-specific configurations to minimize complex queries
           omitQuotationForMultipartRequest: true,
           bulkDataURI: {
-            enabled: false, // Disable bulk data URI for Orthanc
+            enabled: false, // Disable bulk data URI
           },
           requestOptions: {
             mode: 'cors',
             credentials: 'omit',
           },
+          // Disable advanced QIDO features that Orthanc doesn't support well
+          supportsStow: false,
+          supportsMetadata: false,
         },
       },
     ],
     defaultDataSourceName: 'orthanc',
-    maxNumberOfWebWorkers: 3,
+    maxNumberOfWebWorkers: 1, // Reduce workers to minimize concurrent requests
     omitQuotationForMultipartRequest: true,
+    // Disable some advanced OHIF features that might cause issues
+    investigationalUseDialog: {
+      option: 'never',
+    },
   };
 
   res.json(config);
@@ -201,11 +302,12 @@ window.config = {
       qidoSupportsIncludeField: false,
       imageRendering: 'wadouri',
       thumbnailRendering: 'wadouri',
-      enableStudyLazyLoad: true,
+      enableStudyLazyLoad: false,
       supportsFuzzyMatching: false,
       supportsWildcard: false,
       supportsInstanceMetadata: false,
       staticWado: false,
+      dicomUploadEnabled: false,
       omitQuotationForMultipartRequest: true,
       bulkDataURI: {
         enabled: false,
@@ -214,11 +316,16 @@ window.config = {
         mode: 'cors',
         credentials: 'omit',
       },
+      supportsStow: false,
+      supportsMetadata: false,
     },
   }],
   defaultDataSourceName: 'dicomweb',
-  maxNumberOfWebWorkers: 3,
+  maxNumberOfWebWorkers: 1,
   omitQuotationForMultipartRequest: true,
+  investigationalUseDialog: {
+    option: 'never',
+  },
   httpErrorHandler: error => {
     console.error('HTTP Error:', error);
   },
@@ -366,7 +473,7 @@ app.get('/api/debug-orthanc-study/:studyUID', async (req, res) => {
       headers: { Accept: 'application/json' },
     });
     const orthancStudies = await orthancStudiesResponse.json();
-    
+
     // Find the study by UID
     let orthancStudyId = null;
     for (const studyId of orthancStudies) {
@@ -397,7 +504,7 @@ app.get('/api/debug-orthanc-study/:studyUID', async (req, res) => {
         headers: { Accept: 'application/json' },
       });
       const series = await seriesResponse.json();
-      
+
       // Get instances for this series
       const instances = [];
       for (const instanceId of series.Instances) {
@@ -411,7 +518,7 @@ app.get('/api/debug-orthanc-study/:studyUID', async (req, res) => {
           instanceNumber: instance.MainDicomTags.InstanceNumber,
         });
       }
-      
+
       seriesInfo.push({
         orthancId: seriesId,
         seriesInstanceUID: series.MainDicomTags.SeriesInstanceUID,
@@ -426,9 +533,9 @@ app.get('/api/debug-orthanc-study/:studyUID', async (req, res) => {
     if (seriesInfo.length > 0 && seriesInfo[0].instances.length > 0) {
       const firstSeries = seriesInfo[0];
       const firstInstance = firstSeries.instances[0];
-      
+
       const wadoUrl = `${ORTHANC_URL}/wado?requestType=WADO&studyUID=${studyUID}&seriesUID=${firstSeries.seriesInstanceUID}&objectUID=${firstInstance.sopInstanceUID}&contentType=application/dicom`;
-      
+
       try {
         const wadoResponse = await fetch(wadoUrl, {
           headers: { Accept: 'application/dicom' },

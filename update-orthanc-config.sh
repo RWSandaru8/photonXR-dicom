@@ -16,7 +16,7 @@ curl -o nginx-config-updated.conf https://raw.githubusercontent.com/RWSandaru8/p
 echo "🔄 Updating Orthanc configuration..."
 sudo cp orthanc-config-updated.json /var/lib/orthanc/config/orthanc.json
 
-# Update Nginx configuration  
+# Update Nginx configuration
 echo "🔄 Updating Nginx configuration..."
 sudo cp nginx-config-updated.conf /var/lib/orthanc/nginx/default.conf
 

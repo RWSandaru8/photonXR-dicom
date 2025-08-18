@@ -20,18 +20,18 @@ sleep 15
 echo "🧪 Testing Orthanc connectivity..."
 if curl -k -s https://dentax.globalpearlventures.com:4000/system | grep -q "Name"; then
     echo "✅ Orthanc is running with current configuration"
-    
+
     # Test DICOM-Web endpoints
     echo "Testing DICOM-Web endpoints..."
     curl -k -s -H "Accept: application/dicom+json" https://dentax.globalpearlventures.com:4000/dicom-web/studies | head -20
-    
+
     echo "Testing WADO endpoint..."
     curl -k -s -I https://dentax.globalpearlventures.com:4000/wado
-    
+
 else
     echo "❌ Orthanc failed to start. Checking logs..."
     sudo docker-compose logs orthanc | tail -20
-    
+
     echo "🔄 Trying to restore from backup..."
     # Find the most recent backup
     LATEST_BACKUP=$(ls -t /var/lib/orthanc/config/orthanc.json.backup.* 2>/dev/null | head -1)
@@ -41,7 +41,7 @@ else
         sudo docker-compose down
         sudo docker-compose up -d
         sleep 10
-        
+
         if curl -k -s https://dentax.globalpearlventures.com:4000/system | grep -q "Name"; then
             echo "✅ Orthanc restored successfully"
         else

@@ -10,19 +10,19 @@ Write-Host "`n1. Getting studies from Orthanc directly:" -ForegroundColor Yellow
 try {
     $orthancStudies = Invoke-RestMethod -Uri "$orthancUrl/studies" -Method GET -SkipCertificateCheck
     Write-Host "Found $($orthancStudies.Count) studies in Orthanc"
-    
+
     if ($orthancStudies.Count -gt 0) {
         $firstStudyId = $orthancStudies[0]
         Write-Host "First study ID: $firstStudyId"
-        
+
         # Get study details
         $studyDetails = Invoke-RestMethod -Uri "$orthancUrl/studies/$firstStudyId" -Method GET -SkipCertificateCheck
         $studyUID = $studyDetails.MainDicomTags.StudyInstanceUID
         Write-Host "Study UID: $studyUID"
-        
+
         # Test DICOM-Web endpoints through proxy
         Write-Host "`n2. Testing DICOM-Web endpoints through proxy:" -ForegroundColor Yellow
-        
+
         $endpoints = @(
             "/dicom-web/studies",
             "/dicom-web/studies?StudyInstanceUID=$studyUID",
@@ -30,7 +30,7 @@ try {
             "/dicom-web/studies/$studyUID/metadata",
             "/dicom-web/studies/$studyUID/series"
         )
-        
+
         foreach ($endpoint in $endpoints) {
             Write-Host "`nTesting: $baseUrl$endpoint" -ForegroundColor Cyan
             try {
@@ -40,7 +40,7 @@ try {
                 }
                 Write-Host "Status: $($response.StatusCode)" -ForegroundColor Green
                 Write-Host "Content-Type: $($response.Headers.'Content-Type')"
-                
+
                 if ($response.Content.Length -lt 1000) {
                     Write-Host "Response: $($response.Content)"
                 } else {
@@ -63,7 +63,7 @@ try {
                 }
             }
         }
-        
+
         # Test our custom debug endpoint
         Write-Host "`n3. Testing custom debug endpoint:" -ForegroundColor Yellow
         try {
