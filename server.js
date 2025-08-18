@@ -476,7 +476,7 @@ app.get('/wado', (req, res) => {
     });
 });
 
-// Proxy all Orthanc API requests
+// Proxy all Orthanc API requests EXCEPT /wado (we handle that separately)
 app.use('/dicom-web', orthancProxy);
 app.use('/orthanc', orthancProxy);
 app.use('/studies', orthancProxy);
@@ -583,7 +583,7 @@ window.config = {
   routerBasename: '/',
   modes: ['@ohif/mode-longitudinal'],
   extensions: [],
-  showStudyBrowser: false,
+  showStudyBrowser: true,
   dataSources: [{
     namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
     sourceName: 'dicomweb',
@@ -593,14 +593,18 @@ window.config = {
       wadoUriRoot: 'https://dentax.globalpearlventures.com:3000/wado',
       qidoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
       wadoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
-      qidoSupportsIncludeField: false,
+      
+      // Force simple image loading
       imageRendering: 'wadouri',
       thumbnailRendering: 'wadouri',
+      
+      // Disable complex features
+      qidoSupportsIncludeField: false,
       enableStudyLazyLoad: false,
       supportsFuzzyMatching: false,
       supportsWildcard: false,
       supportsInstanceMetadata: false,
-      staticWado: false,
+      staticWado: true,
       dicomUploadEnabled: false,
       omitQuotationForMultipartRequest: true,
       bulkDataURI: {
@@ -617,6 +621,9 @@ window.config = {
   defaultDataSourceName: 'dicomweb',
   maxNumberOfWebWorkers: 1,
   omitQuotationForMultipartRequest: true,
+  useSharedArrayBuffer: false,
+  showWarningMessageForCrossOrigin: false,
+  showCPUFallbackMessage: false,
   investigationalUseDialog: {
     option: 'never',
   },
@@ -685,6 +692,102 @@ app.get('/api/test-wado/:studyUID', async (req, res) => {
       error: 'WADO test failed',
       message: error.message,
     });
+  }
+});
+
+// Simple WADO test endpoint
+app.get('/api/test-wado/:studyUID', async (req, res) => {
+  const { studyUID } = req.params;
+  
+  try {
+    // Get first available instance
+    const seriesResponse = await fetch(`${ORTHANC_URL}/dicom-web/studies/${studyUID}/series`, {
+      headers: { Accept: 'application/dicom+json' },
+    });
+    
+    if (!seriesResponse.ok) {
+      return res.json({ error: 'No series found' });
+    }
+    
+    const series = await seriesResponse.json();
+    if (series.length === 0) {
+      return res.json({ error: 'No series in study' });
+    }
+    
+    const seriesUID = series[0]['0020000E']?.Value?.[0];
+    const instancesResponse = await fetch(
+      `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series/${seriesUID}/instances`,
+      {
+        headers: { Accept: 'application/dicom+json' },
+      }
+    );
+    
+    if (!instancesResponse.ok) {
+      return res.json({ error: 'No instances found' });
+    }
+    
+    const instances = await instancesResponse.json();
+    if (instances.length === 0) {
+      return res.json({ error: 'No instances in series' });
+    }
+    
+    const objectUID = instances[0]['00080018']?.Value?.[0];
+    
+    // Test WADO-URI URL
+    const wadoUrl = `https://dentax.globalpearlventures.com:3000/wado?requestType=WADO&studyUID=${studyUID}&seriesUID=${seriesUID}&objectUID=${objectUID}&contentType=application/dicom`;
+    
+    res.json({
+      studyUID,
+      seriesUID,
+      objectUID,
+      wadoUrl,
+      testInBrowser: wadoUrl,
+      seriesCount: series.length,
+      instanceCount: instances.length,
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      error: 'WADO test failed',
+      message: error.message,
+    });
+  }
+});
+
+// Direct DICOM image endpoint for testing
+app.get('/api/image/:studyUID/:seriesUID/:instanceUID', async (req, res) => {
+  const { studyUID, seriesUID, instanceUID } = req.params;
+  
+  try {
+    // Direct Orthanc WADO request
+    const wadoUrl = `${ORTHANC_URL}/wado?requestType=WADO&studyUID=${studyUID}&seriesUID=${seriesUID}&objectUID=${instanceUID}&contentType=application/dicom`;
+    
+    console.log(`Direct image request: ${wadoUrl}`);
+    
+    const response = await fetch(wadoUrl, {
+      headers: {
+        Accept: 'application/dicom',
+        'User-Agent': 'OHIF-Viewer/3.0',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Image fetch failed: ${response.status}`);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    
+    res.set({
+      'Content-Type': 'application/dicom',
+      'Access-Control-Allow-Origin': '*',
+      'Content-Length': arrayBuffer.byteLength,
+    });
+    
+    res.send(Buffer.from(arrayBuffer));
+    
+  } catch (error) {
+    console.error('Direct image error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
