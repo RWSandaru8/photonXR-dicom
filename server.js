@@ -95,10 +95,12 @@ const orthancProxy = createProxyMiddleware({
 app.get('/dicom-web/studies/:studyUID/series/:seriesUID/metadata', async (req, res) => {
   const { studyUID, seriesUID } = req.params;
 
-  console.log(`Metadata request for study: ${studyUID}, series: ${seriesUID}`);
+  console.log(`\n=== SERIES METADATA REQUEST ===`);
+  console.log(`Study UID: ${studyUID}`);
+  console.log(`Series UID: ${seriesUID}`);
 
   try {
-    // Instead of using the problematic metadata endpoint, get instances and their metadata
+    // Get instances first to understand what we have
     const instancesResponse = await fetch(
       `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series/${seriesUID}/instances`,
       {
@@ -110,20 +112,51 @@ app.get('/dicom-web/studies/:studyUID/series/:seriesUID/metadata', async (req, r
       const instances = await instancesResponse.json();
       console.log(`Found ${instances.length} instances for series ${seriesUID}`);
 
-      // Return the instances data which contains the metadata OHIF needs
+      // Log detailed instance info for debugging
+      instances.forEach((instance, index) => {
+        console.log(`Instance ${index + 1}:`, {
+          sopInstanceUID: instance['00080018']?.Value?.[0],
+          instanceNumber: instance['00200013']?.Value?.[0],
+          imageType: instance['00080008']?.Value,
+          transferSyntax: instance['00020010']?.Value?.[0],
+        });
+      });
+
+      // Enhance the instances data with additional metadata that OHIF might need
+      const enhancedInstances = instances.map(instance => {
+        // Ensure required DICOM tags are present
+        const enhanced = { ...instance };
+        
+        // Add missing tags that OHIF expects
+        if (!enhanced['00080016']) { // SOP Class UID
+          enhanced['00080016'] = { vr: 'UI', Value: ['1.2.840.10008.5.1.4.1.1.2'] }; // CT Image Storage
+        }
+        
+        if (!enhanced['00280002']) { // Samples per Pixel
+          enhanced['00280002'] = { vr: 'US', Value: [1] };
+        }
+        
+        if (!enhanced['00280004']) { // Photometric Interpretation
+          enhanced['00280004'] = { vr: 'CS', Value: ['MONOCHROME2'] };
+        }
+
+        return enhanced;
+      });
+
       res.set('Access-Control-Allow-Origin', '*');
       res.set('Content-Type', 'application/dicom+json');
-      res.json(instances);
+      res.json(enhancedInstances);
     } else {
       console.error(`Instances request failed: ${instancesResponse.status}`);
-      // Fallback: return empty array instead of error
+      const errorText = await instancesResponse.text();
+      console.error(`Error details: ${errorText}`);
+      
       res.set('Access-Control-Allow-Origin', '*');
       res.set('Content-Type', 'application/dicom+json');
       res.json([]);
     }
   } catch (error) {
     console.error('Metadata endpoint error:', error);
-    // Return empty array instead of error to prevent OHIF from breaking
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Content-Type', 'application/dicom+json');
     res.json([]);
@@ -134,10 +167,11 @@ app.get('/dicom-web/studies/:studyUID/series/:seriesUID/metadata', async (req, r
 app.get('/dicom-web/studies/:studyUID/metadata', async (req, res) => {
   const { studyUID } = req.params;
 
-  console.log(`Study metadata request for: ${studyUID}`);
+  console.log(`\n=== STUDY METADATA REQUEST ===`);
+  console.log(`Study UID: ${studyUID}`);
 
   try {
-    // Get all series for the study
+    // Get all series for the study first
     const seriesResponse = await fetch(`${ORTHANC_URL}/dicom-web/studies/${studyUID}/series`, {
       headers: { Accept: 'application/dicom+json' },
     });
@@ -146,18 +180,230 @@ app.get('/dicom-web/studies/:studyUID/metadata', async (req, res) => {
       const series = await seriesResponse.json();
       console.log(`Found ${series.length} series for study ${studyUID}`);
 
-      // Return the series data as study metadata
+      // Get instances for each series to build complete metadata
+      const allInstances = [];
+      
+      for (const seriesData of series) {
+        const seriesUID = seriesData['0020000E']?.Value?.[0];
+        if (seriesUID) {
+          try {
+            const instancesResponse = await fetch(
+              `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series/${seriesUID}/instances`,
+              {
+                headers: { Accept: 'application/dicom+json' },
+              }
+            );
+            
+            if (instancesResponse.ok) {
+              const instances = await instancesResponse.json();
+              console.log(`  Series ${seriesUID}: ${instances.length} instances`);
+              allInstances.push(...instances);
+            }
+          } catch (error) {
+            console.error(`Error getting instances for series ${seriesUID}:`, error);
+          }
+        }
+      }
+
+      console.log(`Total instances in study: ${allInstances.length}`);
+
+      // Return all instances as study metadata
       res.set('Access-Control-Allow-Origin', '*');
       res.set('Content-Type', 'application/dicom+json');
-      res.json(series);
+      res.json(allInstances);
     } else {
       console.error(`Series request failed: ${seriesResponse.status}`);
+      const errorText = await seriesResponse.text();
+      console.error(`Error details: ${errorText}`);
+      
       res.set('Access-Control-Allow-Origin', '*');
       res.set('Content-Type', 'application/dicom+json');
       res.json([]);
     }
   } catch (error) {
     console.error('Study metadata endpoint error:', error);
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Content-Type', 'application/dicom+json');
+    res.json([]);
+  }
+});
+
+// Enhanced instances endpoint
+app.get('/dicom-web/studies/:studyUID/series/:seriesUID/instances', async (req, res) => {
+  const { studyUID, seriesUID } = req.params;
+
+  console.log(`\n=== INSTANCES REQUEST ===`);
+  console.log(`Study UID: ${studyUID}`);
+  console.log(`Series UID: ${seriesUID}`);
+
+  try {
+    // Forward to Orthanc but enhance the response
+    const orthancResponse = await fetch(
+      `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series/${seriesUID}/instances`,
+      {
+        headers: { Accept: 'application/dicom+json' },
+      }
+    );
+
+    if (orthancResponse.ok) {
+      const instances = await orthancResponse.json();
+      console.log(`Found ${instances.length} instances`);
+
+      // Enhance instances with required metadata for OHIF display sets
+      const enhancedInstances = instances.map((instance, index) => {
+        const enhanced = { ...instance };
+
+        // Ensure SOP Class UID (required for display sets)
+        if (!enhanced['00080016']) {
+          enhanced['00080016'] = { vr: 'UI', Value: ['1.2.840.10008.5.1.4.1.1.2'] }; // CT Image Storage
+        }
+
+        // Ensure SOP Instance UID
+        if (!enhanced['00080018'] && enhanced.SOPInstanceUID) {
+          enhanced['00080018'] = { vr: 'UI', Value: [enhanced.SOPInstanceUID] };
+        }
+
+        // Ensure Instance Number
+        if (!enhanced['00200013']) {
+          enhanced['00200013'] = { vr: 'IS', Value: [index + 1] };
+        }
+
+        // Ensure Image Type
+        if (!enhanced['00080008']) {
+          enhanced['00080008'] = { vr: 'CS', Value: ['ORIGINAL', 'PRIMARY', 'AXIAL'] };
+        }
+
+        // Ensure Transfer Syntax UID
+        if (!enhanced['00020010']) {
+          enhanced['00020010'] = { vr: 'UI', Value: ['1.2.840.10008.1.2.1'] }; // Explicit VR Little Endian
+        }
+
+        // Ensure Photometric Interpretation
+        if (!enhanced['00280004']) {
+          enhanced['00280004'] = { vr: 'CS', Value: ['MONOCHROME2'] };
+        }
+
+        // Ensure Samples per Pixel
+        if (!enhanced['00280002']) {
+          enhanced['00280002'] = { vr: 'US', Value: [1] };
+        }
+
+        // Ensure Rows and Columns (basic defaults if not present)
+        if (!enhanced['00280010']) {
+          enhanced['00280010'] = { vr: 'US', Value: [512] }; // Rows
+        }
+        if (!enhanced['00280011']) {
+          enhanced['00280011'] = { vr: 'US', Value: [512] }; // Columns
+        }
+
+        // Ensure Pixel Spacing if not present
+        if (!enhanced['00280030']) {
+          enhanced['00280030'] = { vr: 'DS', Value: ['1.0', '1.0'] };
+        }
+
+        console.log(`  Instance ${index + 1}: SOP=${enhanced['00080018']?.Value?.[0]?.slice(-8)}, Number=${enhanced['00200013']?.Value?.[0]}`);
+
+        return enhanced;
+      });
+
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Content-Type', 'application/dicom+json');
+      res.json(enhancedInstances);
+    } else {
+      console.error(`Instances request failed: ${orthancResponse.status}`);
+      const errorText = await orthancResponse.text();
+      console.error(`Error details: ${errorText}`);
+      
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Content-Type', 'application/dicom+json');
+      res.json([]);
+    }
+  } catch (error) {
+    console.error('Instances endpoint error:', error);
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Content-Type', 'application/dicom+json');
+    res.json([]);
+  }
+});
+
+// Enhanced series endpoint with proper metadata
+app.get('/dicom-web/studies/:studyUID/series', async (req, res) => {
+  const { studyUID } = req.params;
+
+  console.log(`\n=== SERIES LIST REQUEST ===`);
+  console.log(`Study UID: ${studyUID}`);
+  console.log(`Query params:`, req.query);
+
+  try {
+    // Forward to Orthanc but enhance the response
+    const orthancResponse = await fetch(`${ORTHANC_URL}/dicom-web/studies/${studyUID}/series`, {
+      headers: { Accept: 'application/dicom+json' },
+    });
+
+    if (orthancResponse.ok) {
+      const series = await orthancResponse.json();
+      console.log(`Found ${series.length} series for study ${studyUID}`);
+
+      // Enhance series data with additional metadata OHIF needs
+      const enhancedSeries = await Promise.all(
+        series.map(async (seriesData) => {
+          const seriesUID = seriesData['0020000E']?.Value?.[0];
+          console.log(`Processing series: ${seriesUID}`);
+
+          // Get instance count for this series
+          try {
+            const instancesResponse = await fetch(
+              `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series/${seriesUID}/instances`,
+              {
+                headers: { Accept: 'application/dicom+json' },
+              }
+            );
+
+            if (instancesResponse.ok) {
+              const instances = await instancesResponse.json();
+              
+              // Add instance count and ensure required tags
+              const enhanced = { ...seriesData };
+              
+              // Add number of instances
+              enhanced['00201209'] = { vr: 'IS', Value: [instances.length] }; // Number of Series Related Instances
+              
+              // Ensure modality is present
+              if (!enhanced['00080060']) {
+                enhanced['00080060'] = { vr: 'CS', Value: ['CT'] }; // Default to CT
+              }
+              
+              // Add series description if missing
+              if (!enhanced['0008103E']) {
+                enhanced['0008103E'] = { vr: 'LO', Value: [`Series ${seriesData['00200011']?.Value?.[0] || '1'}`] };
+              }
+
+              console.log(`  Enhanced series ${seriesUID}: ${instances.length} instances, modality: ${enhanced['00080060'].Value[0]}`);
+              
+              return enhanced;
+            }
+          } catch (error) {
+            console.error(`Error enhancing series ${seriesUID}:`, error);
+          }
+
+          return seriesData;
+        })
+      );
+
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Content-Type', 'application/dicom+json');
+      res.json(enhancedSeries);
+    } else {
+      console.error(`Series request failed: ${orthancResponse.status}`);
+      const errorText = await orthancResponse.text();
+      console.error(`Error details: ${errorText}`);
+      
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Content-Type', 'application/dicom+json');
+      res.json([]);
+    }
+  } catch (error) {
+    console.error('Series endpoint error:', error);
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Content-Type', 'application/dicom+json');
     res.json([]);
@@ -221,7 +467,11 @@ app.get('/api/config', (req, res) => {
     routerBasename: '/',
     modes: ['@ohif/mode-longitudinal'],
     extensions: [],
-    showStudyBrowser: false,
+    showStudyBrowser: true,
+    // Enable study list to help with display set creation
+    investigationalUseDialog: {
+      option: 'never',
+    },
     dataSources: [
       {
         namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
@@ -231,38 +481,100 @@ app.get('/api/config', (req, res) => {
           wadoUriRoot: 'https://dentax.globalpearlventures.com:3000/wado',
           qidoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
           wadoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
-          qidoSupportsIncludeField: false, // Disable include field support
-          imageRendering: 'wadouri', // Force WADO-URI for all images
+          
+          // Basic QIDO settings for Orthanc compatibility
+          qidoSupportsIncludeField: false,
+          supportsFuzzyMatching: false,
+          supportsWildcard: false,
+          
+          // Image rendering settings
+          imageRendering: 'wadouri', // Force WADO-URI for images
           thumbnailRendering: 'wadouri', // Force WADO-URI for thumbnails
-          enableStudyLazyLoad: false, // Disable lazy loading to prevent complex queries
-          supportsFuzzyMatching: false, // Disable fuzzy matching
-          supportsWildcard: false, // Disable wildcard queries
-          acceptHeader: 'application/dicom+json',
-          supportsInstanceMetadata: false, // Completely disable instance metadata
+          
+          // Disable problematic features
+          enableStudyLazyLoad: false,
+          supportsInstanceMetadata: false,
+          supportsMetadata: false,
+          supportsStow: false,
           staticWado: false,
           dicomUploadEnabled: false,
-          // Orthanc-specific configurations to minimize complex queries
+          
+          // Basic request settings
+          acceptHeader: 'application/dicom+json',
           omitQuotationForMultipartRequest: true,
-          bulkDataURI: {
-            enabled: false, // Disable bulk data URI
-          },
           requestOptions: {
             mode: 'cors',
             credentials: 'omit',
           },
-          // Disable advanced QIDO features that Orthanc doesn't support well
-          supportsStow: false,
-          supportsMetadata: false,
+          
+          // Bulk data settings
+          bulkDataURI: {
+            enabled: false,
+          },
         },
       },
     ],
     defaultDataSourceName: 'orthanc',
-    maxNumberOfWebWorkers: 1, // Reduce workers to minimize concurrent requests
+    
+    // Basic OHIF settings
+    maxNumberOfWebWorkers: 1,
     omitQuotationForMultipartRequest: true,
-    // Disable some advanced OHIF features that might cause issues
-    investigationalUseDialog: {
-      option: 'never',
-    },
+    
+    // Essential hanging protocol settings to fix display set issues
+    hangingProtocols: [
+      {
+        id: 'defaultProtocol',
+        name: 'Default',
+        createdDate: '2023-01-01T00:00:00.000Z',
+        modifiedDate: '2023-01-01T00:00:00.000Z',
+        availableTo: {},
+        editableBy: {},
+        protocolMatchingRules: [],
+        toolGroupIds: ['default'],
+        displaySetSelectors: {
+          defaultDisplaySetId: {
+            seriesMatchingRules: [
+              {
+                weight: 1,
+                attribute: 'numImageFrames',
+                constraint: {
+                  greaterThan: { value: 0 },
+                },
+              },
+            ],
+          },
+        },
+        stages: [
+          {
+            id: 'default',
+            name: 'Default',
+            viewportStructure: {
+              layoutType: 'grid',
+              properties: {
+                rows: 1,
+                columns: 1,
+              },
+            },
+            viewports: [
+              {
+                viewportOptions: {
+                  viewportId: 'ctAxial',
+                  viewportType: 'volume',
+                  orientation: 'axial',
+                  background: [0.2, 0.2, 0.2],
+                },
+                displaySets: [
+                  {
+                    id: 'defaultDisplaySetId',
+                  },
+                ],
+              },
+            ],
+            createdDate: '2023-01-01T00:00:00.000Z',
+          },
+        ],
+      },
+    ],
   };
 
   res.json(config);
@@ -623,6 +935,148 @@ app.get('/api/test-study-endpoint/:studyUID', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: 'Test failed',
+      message: error.message,
+    });
+  }
+});
+
+// Enhanced debug endpoint for display set creation
+app.get('/api/debug-display-sets/:studyUID', async (req, res) => {
+  const { studyUID } = req.params;
+
+  console.log(`\n=== DISPLAY SET DEBUG ===`);
+  console.log(`Study UID: ${studyUID}`);
+
+  try {
+    // Get study data
+    const studyResponse = await fetch(
+      `${ORTHANC_URL}/dicom-web/studies?StudyInstanceUID=${studyUID}`,
+      {
+        headers: { Accept: 'application/dicom+json' },
+      }
+    );
+
+    // Get series data
+    const seriesResponse = await fetch(
+      `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series`,
+      {
+        headers: { Accept: 'application/dicom+json' },
+      }
+    );
+
+    const study = studyResponse.ok ? await studyResponse.json() : [];
+    const series = seriesResponse.ok ? await seriesResponse.json() : [];
+
+    console.log(`Found ${study.length} study records, ${series.length} series`);
+
+    // Get detailed info for each series
+    const seriesDetails = [];
+    for (const seriesData of series) {
+      const seriesUID = seriesData['0020000E']?.Value?.[0];
+      if (seriesUID) {
+        try {
+          const instancesResponse = await fetch(
+            `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series/${seriesUID}/instances`,
+            {
+              headers: { Accept: 'application/dicom+json' },
+            }
+          );
+
+          if (instancesResponse.ok) {
+            const instances = await instancesResponse.json();
+            
+            seriesDetails.push({
+              seriesUID,
+              seriesNumber: seriesData['00200011']?.Value?.[0],
+              modality: seriesData['00080060']?.Value?.[0],
+              seriesDescription: seriesData['0008103E']?.Value?.[0],
+              instanceCount: instances.length,
+              firstInstance: instances[0] ? {
+                sopInstanceUID: instances[0]['00080018']?.Value?.[0],
+                instanceNumber: instances[0]['00200013']?.Value?.[0],
+                sopClassUID: instances[0]['00080016']?.Value?.[0],
+                transferSyntax: instances[0]['00020010']?.Value?.[0],
+                imageType: instances[0]['00080008']?.Value,
+                photometricInterpretation: instances[0]['00280004']?.Value?.[0],
+                rows: instances[0]['00280010']?.Value?.[0],
+                columns: instances[0]['00280011']?.Value?.[0],
+                pixelSpacing: instances[0]['00280030']?.Value,
+              } : null,
+              // Check if this series would create a valid display set
+              displaySetCompatible: instances.length > 0 && 
+                                    instances[0]['00080016'] && // SOP Class UID
+                                    instances[0]['00080018'] && // SOP Instance UID
+                                    instances[0]['00200013'], // Instance Number
+            });
+          }
+        } catch (error) {
+          console.error(`Error processing series ${seriesUID}:`, error);
+          seriesDetails.push({
+            seriesUID,
+            error: error.message,
+            displaySetCompatible: false,
+          });
+        }
+      }
+    }
+
+    // Test WADO-URI for first available instance
+    let wadoTest = null;
+    const firstCompatibleSeries = seriesDetails.find(s => s.displaySetCompatible);
+    if (firstCompatibleSeries && firstCompatibleSeries.firstInstance) {
+      const wadoUrl = `${ORTHANC_URL}/wado?requestType=WADO&studyUID=${studyUID}&seriesUID=${firstCompatibleSeries.seriesUID}&objectUID=${firstCompatibleSeries.firstInstance.sopInstanceUID}&contentType=application/dicom`;
+      
+      try {
+        const wadoResponse = await fetch(wadoUrl, {
+          headers: { Accept: 'application/dicom' },
+        });
+        
+        wadoTest = {
+          url: wadoUrl,
+          status: wadoResponse.status,
+          contentType: wadoResponse.headers.get('content-type'),
+          contentLength: wadoResponse.headers.get('content-length'),
+          working: wadoResponse.ok,
+        };
+      } catch (error) {
+        wadoTest = {
+          url: wadoUrl,
+          error: error.message,
+          working: false,
+        };
+      }
+    }
+
+    const debugInfo = {
+      studyUID,
+      studyFound: study.length > 0,
+      seriesCount: series.length,
+      compatibleSeries: seriesDetails.filter(s => s.displaySetCompatible).length,
+      seriesDetails,
+      wadoTest,
+      ohifUrl: `/viewer/dicomweb?StudyInstanceUIDs=${studyUID}`,
+      recommendations: [],
+    };
+
+    // Add recommendations based on findings
+    if (debugInfo.seriesCount === 0) {
+      debugInfo.recommendations.push('No series found - check if study exists in Orthanc');
+    } else if (debugInfo.compatibleSeries === 0) {
+      debugInfo.recommendations.push('No compatible series found - missing required DICOM tags');
+      debugInfo.recommendations.push('Check SOP Class UID, SOP Instance UID, and Instance Number tags');
+    } else if (!wadoTest || !wadoTest.working) {
+      debugInfo.recommendations.push('WADO-URI not working - image loading will fail');
+      debugInfo.recommendations.push('Check Orthanc WADO configuration');
+    } else {
+      debugInfo.recommendations.push('Study appears compatible with OHIF');
+      debugInfo.recommendations.push('If still having issues, check browser console for hanging protocol errors');
+    }
+
+    res.json(debugInfo);
+  } catch (error) {
+    console.error('Display set debug failed:', error);
+    res.status(500).json({
+      error: 'Debug failed',
       message: error.message,
     });
   }
