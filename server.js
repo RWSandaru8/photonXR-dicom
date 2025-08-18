@@ -69,14 +69,14 @@ app.get('/api/config', (req, res) => {
   const config = {
     routerBasename: '/',
     modes: ['@ohif/mode-longitudinal'],
+    extensions: [],
+    showStudyBrowser: false,
     dataSources: [
       {
-        // FIXED: Correct namespace name
         namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
         configuration: {
           friendlyName: 'Orthanc DICOM Server',
           name: 'orthanc',
-          // FIXED: Use the proxied endpoints through your server
           wadoUriRoot: 'https://dentax.globalpearlventures.com:3000/wado',
           qidoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
           wadoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
@@ -86,21 +86,14 @@ app.get('/api/config', (req, res) => {
           enableStudyLazyLoad: true,
           supportsFuzzyMatching: false,
           supportsWildcard: true,
-          // ADDED: Additional configuration for better compatibility
           acceptHeader: 'application/dicom+json',
-          requestOptions: {
-            requestCredentials: 'include',
-          },
         },
       },
     ],
     defaultDataSourceName: 'orthanc',
-    httpErrorHandler: error => {
-      console.error('HTTP Error:', error);
-    },
-    // ADDED: Additional OHIF configuration
-    showStudyList: true,
-    filterQueryParam: false,
+    // Remove problematic configurations that might cause black screen
+    maxNumberOfWebWorkers: 3,
+    omitQuotationForMultipartRequest: true,
   };
 
   res.json(config);
@@ -144,6 +137,60 @@ app.get('/api/test-orthanc', async (req, res) => {
       status: 'error',
       message: 'Failed to connect to Orthanc',
       error: error.message,
+    });
+  }
+});
+
+// Debug endpoint to check specific study data for OHIF
+app.get('/api/debug-study/:studyUID', async (req, res) => {
+  const { studyUID } = req.params;
+
+  try {
+    // Get study metadata
+    const studyResponse = await fetch(
+      `${ORTHANC_URL}/dicom-web/studies?StudyInstanceUID=${studyUID}`,
+      {
+        headers: { Accept: 'application/dicom+json' },
+      }
+    );
+
+    // Get series metadata
+    const seriesResponse = await fetch(
+      `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series`,
+      {
+        headers: { Accept: 'application/dicom+json' },
+      }
+    );
+
+    // Get instances for first series
+    const seriesData = await seriesResponse.json();
+    let instancesData = [];
+
+    if (seriesData.length > 0) {
+      const firstSeriesUID = seriesData[0]['0020000E'].Value[0];
+      const instancesResponse = await fetch(
+        `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series/${firstSeriesUID}/instances`,
+        {
+          headers: { Accept: 'application/dicom+json' },
+        }
+      );
+      instancesData = await instancesResponse.json();
+    }
+
+    res.json({
+      study: await studyResponse.json(),
+      series: seriesData,
+      instances: instancesData,
+      ohifUrl: `/viewer/dicomweb?StudyInstanceUIDs=${studyUID}`,
+      config: {
+        qidoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
+        wadoRoot: 'https://dentax.globalpearlventures.com:3000/dicom-web',
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Debug failed',
+      message: error.message,
     });
   }
 });

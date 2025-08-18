@@ -79,3 +79,10 @@ echo ""
 echo "8. Orthanc connectivity test..."
 ORTHANC_TEST=$(curl -k -s "$SERVER_URL/api/test-orthanc")
 echo "Orthanc test response: $ORTHANC_TEST"
+
+echo ""
+
+# Test 9: New debug endpoint for OHIF
+echo "9. OHIF debug endpoint for study..."
+DEBUG_RESPONSE=$(curl -k -s "$SERVER_URL/api/debug-study/$STUDY_UID")
+echo "Debug response: $DEBUG_RESPONSE"
