@@ -410,36 +410,69 @@ app.get('/dicom-web/studies/:studyUID/series', async (req, res) => {
   }
 });
 
-// WADO-URI proxy with Orthanc-specific parameter transformation
+// WADO-URI proxy with enhanced debugging and proper image handling
 app.get('/wado', (req, res) => {
-  // Orthanc WADO-URI endpoint is at /wado with specific parameters
-  // Transform OHIF WADO-URI requests to Orthanc format
-  const orthancWadoUrl = `${ORTHANC_URL}/wado?${req.url.split('?')[1] || ''}`;
+  console.log(`\n=== WADO-URI REQUEST ===`);
+  console.log(`Original URL: ${req.url}`);
+  console.log(`Query params:`, req.query);
+  
+  // Extract query parameters
+  const { requestType, studyUID, seriesUID, objectUID, contentType } = req.query;
+  
+  if (!requestType || !studyUID || !seriesUID || !objectUID) {
+    console.error(`Missing required WADO parameters:`, { requestType, studyUID, seriesUID, objectUID });
+    return res.status(400).json({ error: 'Missing required WADO parameters' });
+  }
 
-  console.log(`WADO-URI request: ${req.url}`);
-  console.log(`Proxying to: ${orthancWadoUrl}`);
+  // Build Orthanc WADO URL
+  const orthancWadoUrl = `${ORTHANC_URL}/wado?${req.url.split('?')[1] || ''}`;
+  console.log(`Proxying to Orthanc: ${orthancWadoUrl}`);
 
   fetch(orthancWadoUrl, {
     method: req.method,
     headers: {
-      Accept: req.headers.accept || 'application/dicom',
+      Accept: contentType || 'application/dicom',
       'User-Agent': 'OHIF-Viewer/3.0',
     },
   })
     .then(response => {
-      // Set response headers
+      console.log(`WADO response status: ${response.status}`);
+      console.log(`WADO response headers:`, Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        throw new Error(`WADO request failed: ${response.status} ${response.statusText}`);
+      }
+
+      // Set CORS headers
       res.set('Access-Control-Allow-Origin', '*');
-      res.set('Content-Type', response.headers.get('content-type') || 'application/dicom');
+      res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+      
+      // Set content type
+      const responseContentType = response.headers.get('content-type') || 'application/dicom';
+      res.set('Content-Type', responseContentType);
+      
+      // Set content length if available
+      const contentLength = response.headers.get('content-length');
+      if (contentLength) {
+        res.set('Content-Length', contentLength);
+      }
+      
       res.status(response.status);
 
       return response.arrayBuffer();
     })
     .then(buffer => {
+      console.log(`WADO image size: ${buffer.byteLength} bytes`);
       res.send(Buffer.from(buffer));
     })
     .catch(error => {
       console.error('WADO-URI proxy error:', error);
-      res.status(500).json({ error: 'WADO-URI proxy error', message: error.message });
+      res.status(500).json({ 
+        error: 'WADO-URI proxy error', 
+        message: error.message,
+        url: orthancWadoUrl 
+      });
     });
 });
 
@@ -487,16 +520,16 @@ app.get('/api/config', (req, res) => {
           supportsFuzzyMatching: false,
           supportsWildcard: false,
           
-          // Image rendering settings
-          imageRendering: 'wadouri', // Force WADO-URI for images
-          thumbnailRendering: 'wadouri', // Force WADO-URI for thumbnails
+          // Image rendering settings - force basic WADO-URI
+          imageRendering: 'wadouri',
+          thumbnailRendering: 'wadouri',
           
-          // Disable problematic features
+          // Disable all advanced features that might interfere
           enableStudyLazyLoad: false,
           supportsInstanceMetadata: false,
           supportsMetadata: false,
           supportsStow: false,
-          staticWado: false,
+          staticWado: true, // Enable static WADO for simpler image loading
           dicomUploadEnabled: false,
           
           // Basic request settings
@@ -520,61 +553,10 @@ app.get('/api/config', (req, res) => {
     maxNumberOfWebWorkers: 1,
     omitQuotationForMultipartRequest: true,
     
-    // Essential hanging protocol settings to fix display set issues
-    hangingProtocols: [
-      {
-        id: 'defaultProtocol',
-        name: 'Default',
-        createdDate: '2023-01-01T00:00:00.000Z',
-        modifiedDate: '2023-01-01T00:00:00.000Z',
-        availableTo: {},
-        editableBy: {},
-        protocolMatchingRules: [],
-        toolGroupIds: ['default'],
-        displaySetSelectors: {
-          defaultDisplaySetId: {
-            seriesMatchingRules: [
-              {
-                weight: 1,
-                attribute: 'numImageFrames',
-                constraint: {
-                  greaterThan: { value: 0 },
-                },
-              },
-            ],
-          },
-        },
-        stages: [
-          {
-            id: 'default',
-            name: 'Default',
-            viewportStructure: {
-              layoutType: 'grid',
-              properties: {
-                rows: 1,
-                columns: 1,
-              },
-            },
-            viewports: [
-              {
-                viewportOptions: {
-                  viewportId: 'ctAxial',
-                  viewportType: 'volume',
-                  orientation: 'axial',
-                  background: [0.2, 0.2, 0.2],
-                },
-                displaySets: [
-                  {
-                    id: 'defaultDisplaySetId',
-                  },
-                ],
-              },
-            ],
-            createdDate: '2023-01-01T00:00:00.000Z',
-          },
-        ],
-      },
-    ],
+    // Simplified configuration for basic image display
+    useSharedArrayBuffer: false,
+    showWarningMessageForCrossOrigin: false,
+    showCPUFallbackMessage: false,
   };
 
   res.json(config);
@@ -645,6 +627,65 @@ window.config = {
 `;
 
   res.send(configJS);
+});
+
+// Simple WADO test endpoint
+app.get('/api/test-wado/:studyUID', async (req, res) => {
+  const { studyUID } = req.params;
+  
+  try {
+    // Get first available instance
+    const seriesResponse = await fetch(`${ORTHANC_URL}/dicom-web/studies/${studyUID}/series`, {
+      headers: { Accept: 'application/dicom+json' },
+    });
+    
+    if (!seriesResponse.ok) {
+      return res.json({ error: 'No series found' });
+    }
+    
+    const series = await seriesResponse.json();
+    if (series.length === 0) {
+      return res.json({ error: 'No series in study' });
+    }
+    
+    const seriesUID = series[0]['0020000E']?.Value?.[0];
+    const instancesResponse = await fetch(
+      `${ORTHANC_URL}/dicom-web/studies/${studyUID}/series/${seriesUID}/instances`,
+      {
+        headers: { Accept: 'application/dicom+json' },
+      }
+    );
+    
+    if (!instancesResponse.ok) {
+      return res.json({ error: 'No instances found' });
+    }
+    
+    const instances = await instancesResponse.json();
+    if (instances.length === 0) {
+      return res.json({ error: 'No instances in series' });
+    }
+    
+    const objectUID = instances[0]['00080018']?.Value?.[0];
+    
+    // Test WADO-URI URL
+    const wadoUrl = `https://dentax.globalpearlventures.com:3000/wado?requestType=WADO&studyUID=${studyUID}&seriesUID=${seriesUID}&objectUID=${objectUID}&contentType=application/dicom`;
+    
+    res.json({
+      studyUID,
+      seriesUID,
+      objectUID,
+      wadoUrl,
+      testInBrowser: wadoUrl,
+      seriesCount: series.length,
+      instanceCount: instances.length,
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      error: 'WADO test failed',
+      message: error.message,
+    });
+  }
 });
 
 // Health check endpoint
